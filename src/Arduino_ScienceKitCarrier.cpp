@@ -114,11 +114,16 @@ int ScienceKitCarrier::begin(){
   }
 
   // let's start activity led and bme688
-  startAuxiliaryThreads();
+  //startAuxiliaryThreads();
 }
 
 
 
+
+
+/********************************************************************/
+/*                               Update                             */
+/********************************************************************/
 
 void ScienceKitCarrier::update(){
   updateAnalogInput();
@@ -573,6 +578,6 @@ uint8_t ScienceKitCarrier::getRange2(){
 /********************************************************************/
 
 void ScienceKitCarrier::startAuxiliaryThreads(){
-  thread_activity_led->start(mbed::callback(this, &ScienceKitCarrier::threadActivityLed));
+  //thread_activity_led->start(mbed::callback(this, &ScienceKitCarrier::threadActivityLed));
   thread_update_bme->start(mbed::callback(this, &ScienceKitCarrier::threadBME688)); 
 }

@@ -29,8 +29,8 @@
 #include "INA.h"
 #include "bsec.h"
 #include "Arduino_BMI270_BMM150.h"
-#include "./utils/function_generator_controller.h"
 
+#include "./utils/function_generator_controller.h"
 #include "./utils/Arduino_ScienceKitCarrier_definitions.h"
 
 

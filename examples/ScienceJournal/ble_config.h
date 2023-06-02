@@ -1,6 +1,7 @@
-#ifndef __ARDUINO_SCIENCEKITCARRIER_BLE_CONFIG_H__
-#define __ARDUINO_SCIENCEKITCARRIER_BLE_CONFIG_H__
+#ifndef __BLE_CONFIG_H__
+#define __BLE_CONFIG_H__
 
+#include <ArduinoBLE.h>
 
 const int VERSION = 0x00000001;
 
@@ -22,7 +23,5 @@ BLEUnsignedIntCharacteristic   sndIntensityCharacteristic (SCIENCE_KIT_UUID("101
 BLEUnsignedIntCharacteristic   sndPitchCharacteristic     (SCIENCE_KIT_UUID("1013"), BLENotify);
 BLEUnsignedIntCharacteristic   inputACharacteristic     (SCIENCE_KIT_UUID("1016"), BLENotify);
 BLEUnsignedIntCharacteristic   inputBCharacteristic     (SCIENCE_KIT_UUID("1017"), BLENotify);
-
-
 
 #endif
