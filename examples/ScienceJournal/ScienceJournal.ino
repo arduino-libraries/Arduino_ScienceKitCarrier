@@ -75,62 +75,18 @@ void loop_data() {
 
 void update(void){
   while(1){
-    /*
     digitalWrite(8,HIGH);
-    science_kit.updateAPDS();
-    digitalWrite(8,LOW);
-    rtos::ThisThread::sleep_for(20);
-    digitalWrite(8,HIGH);
-    science_kit.updateAnalogInput();
-    digitalWrite(8,LOW);
-    rtos::ThisThread::sleep_for(20);
-    digitalWrite(8,HIGH);
-    science_kit.updateINA();
-    digitalWrite(8,LOW);
-    rtos::ThisThread::sleep_for(20);
-    digitalWrite(8,HIGH);
-    science_kit.updateIMU();
-    digitalWrite(8,LOW);
-    rtos::ThisThread::sleep_for(20);
-    digitalWrite(8,HIGH);
-    science_kit.updateResistance();
-    digitalWrite(8,LOW);
-    rtos::ThisThread::sleep_for(20);
-    */
-    digitalWrite(8,HIGH);
-    science_kit.update(ROUND_ROBIN_ENABLE);
+    science_kit.update(ROUND_ROBIN_ENABLED);
     digitalWrite(8,LOW);
     rtos::ThisThread::sleep_for(20);
   }
 }
 
 void loop() {
-  /*
-  BLE.poll(1000);
-  while (BLE.connected()) {
-    digitalWrite(8,HIGH);
-    science_kit.update();
-    digitalWrite(8,LOW);
-    updateSubscribedCharacteristics(); 
-    delay(5);
-  }
-  */
-  /*
-  digitalWrite(8,HIGH);
-  science_kit.update();
-  digitalWrite(8,LOW);
-  */
-/*
-  BLEDevice central = BLE.central();
-  if (central.connected()){
-    updateSubscribedCharacteristics();
-  }
-  */
-  //BLE.poll(1000);
+  
   BLEDevice central = BLE.central();
   if (central) {
     _is_connected = true;
-    // airSensor.setValue(dummyAirSensorData, sizeof(dummyAirSensorData));
     lastNotify=millis();
     while (central.connected()) {
       if (millis()-lastNotify>10){

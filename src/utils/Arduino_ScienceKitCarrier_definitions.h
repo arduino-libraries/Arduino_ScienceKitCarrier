@@ -61,8 +61,8 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define ACTIVITY_LED_PAIRING 2
 
 // Update
-#define ROUND_ROBIN_ENABLE 1
-#define ROUND_ROBIN_DISABLE 0
+#define ROUND_ROBIN_ENABLED 1
+#define ROUND_ROBIN_DISABLED 0
 
 
 
