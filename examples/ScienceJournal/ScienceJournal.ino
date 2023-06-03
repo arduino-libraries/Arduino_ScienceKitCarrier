@@ -57,7 +57,7 @@ void setup() {
   BLE.addService(service);
   BLE.advertise();
   science_kit.startAuxiliaryThreads();
-  //_t.start(loop_data);
+  _t.start(loop_data);
   _tu.start(update);
 }
 
