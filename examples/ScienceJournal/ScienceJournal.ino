@@ -79,6 +79,22 @@ void update(void){
     science_kit.updateAPDS();
     digitalWrite(8,LOW);
     rtos::ThisThread::sleep_for(20);
+    digitalWrite(8,HIGH);
+    science_kit.updateAnalogInput();
+    digitalWrite(8,LOW);
+    rtos::ThisThread::sleep_for(20);
+    digitalWrite(8,HIGH);
+    science_kit.updateINA();
+    digitalWrite(8,LOW);
+    rtos::ThisThread::sleep_for(20);
+    digitalWrite(8,HIGH);
+    science_kit.updateIMU();
+    digitalWrite(8,LOW);
+    rtos::ThisThread::sleep_for(20);
+    digitalWrite(8,HIGH);
+    science_kit.updateResistance();
+    digitalWrite(8,LOW);
+    rtos::ThisThread::sleep_for(20);
   }
 }
 
