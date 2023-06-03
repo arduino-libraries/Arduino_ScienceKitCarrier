@@ -126,13 +126,18 @@ void loop() {
     updateSubscribedCharacteristics();
   }
   */
+  //BLE.poll(1000);
   BLEDevice central = BLE.central();
   if (central) {
     _is_connected = true;
     // airSensor.setValue(dummyAirSensorData, sizeof(dummyAirSensorData));
+    lastNotify=millis();
     while (central.connected()) {
+      if (millis()-lastNotify>10){
+        updateSubscribedCharacteristics();
+        lastNotify=millis();
+      }
 
-      updateSubscribedCharacteristics();
     }
   } else {
     delay(100);
