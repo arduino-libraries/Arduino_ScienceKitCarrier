@@ -21,6 +21,8 @@
 
 
 ScienceKitCarrier::ScienceKitCarrier(){
+  round_robin_index=0;
+
   inputA_pin = INPUTA_PIN;
   inputB_pin = INPUTB_PIN;
   inputA=0;
@@ -125,12 +127,40 @@ int ScienceKitCarrier::begin(){
 /*                               Update                             */
 /********************************************************************/
 
-void ScienceKitCarrier::update(){
-  updateAnalogInput();
-  updateAPDS();
-  updateINA();
-  updateResistance();
-  updateIMU();
+void ScienceKitCarrier::update(const bool roundrobin){
+  if (!roundrobin){
+    updateAnalogInput();
+    updateAPDS();
+    updateINA();
+    updateResistance();
+    updateIMU();
+  }
+  else{
+    switch (round_robin_index){
+      case 0: 
+        updateAnalogInput();
+        break;
+      case 1:
+        updateAPDS();
+        break;
+      case 2:
+        updateINA();
+        break;
+      case 3:
+        updateResistance();
+        break;
+      case 4:
+        updateIMU();
+        break;
+      default:
+        break;
+    }
+    round_robin_index++;
+    if (round_robin_index>4){
+      round_robin_index=0;
+    }
+  }
+
 }
 
 
@@ -247,13 +277,15 @@ float ScienceKitCarrier::getCurrent(){
 int ScienceKitCarrier::beginResistance(){
   pinMode(resistance_pin,INPUT);
   // search for minimum open circuit resistance
-  for (int i=0; i<10; i++){
+  for (int i=0; i<20; i++){
     resistance=REF_VOLTAGE*analogRead(resistance_pin)/1024.0;
     resistance=(RESISTOR_AUX*REF_VOLTAGE/resistance)-RESISTOR_AUX;
     if (opencircuit_resistance>resistance){
       opencircuit_resistance=resistance;
     }
+    delay(5);
   }
+  opencircuit_resistance=opencircuit_resistance-1000;
   updateResistance();
   return 0;
 }

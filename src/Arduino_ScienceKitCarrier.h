@@ -37,6 +37,8 @@
 
 class ScienceKitCarrier{
   private:
+    uint8_t round_robin_index = 0;
+
     uint8_t inputA_pin, inputB_pin;
     int inputA, inputB;
 
@@ -71,7 +73,7 @@ class ScienceKitCarrier{
     ScienceKitCarrier();
 
     int begin();
-    void update();                // this makes update on: analog in, imu, apds, ina, resistance
+    void update(const bool roundrobin=ROUND_ROBIN_DISABLE);  // this makes update on: analog in, imu, apds, ina, resistance, round robin enables one sensor update
     void startAuxiliaryThreads();
 
 

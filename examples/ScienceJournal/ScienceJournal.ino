@@ -57,7 +57,7 @@ void setup() {
   BLE.addService(service);
   BLE.advertise();
   science_kit.startAuxiliaryThreads();
-  _t.start(loop_data);
+  //_t.start(loop_data);
   _tu.start(update);
 }
 
@@ -75,6 +75,7 @@ void loop_data() {
 
 void update(void){
   while(1){
+    /*
     digitalWrite(8,HIGH);
     science_kit.updateAPDS();
     digitalWrite(8,LOW);
@@ -93,6 +94,11 @@ void update(void){
     rtos::ThisThread::sleep_for(20);
     digitalWrite(8,HIGH);
     science_kit.updateResistance();
+    digitalWrite(8,LOW);
+    rtos::ThisThread::sleep_for(20);
+    */
+    digitalWrite(8,HIGH);
+    science_kit.update(ROUND_ROBIN_ENABLE);
     digitalWrite(8,LOW);
     rtos::ThisThread::sleep_for(20);
   }
