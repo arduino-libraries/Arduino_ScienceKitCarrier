@@ -15,7 +15,7 @@ void setup() {
   pinMode(8,OUTPUT);
   pinMode(7,OUTPUT);
 
-  science_kit.begin();
+  science_kit.begin(NO_AUXILIARY_THREADS); // Doesn't start the BME688 thread for the moment
 
   if (!BLE.begin()) {
     while(1);
@@ -56,7 +56,7 @@ void setup() {
 
   BLE.addService(service);
   BLE.advertise();
-  science_kit.startAuxiliaryThreads();
+  science_kit.startAuxiliaryThreads(); // start the bme688 thread
   _t.start(loop_data);
   _tu.start(update);
 }

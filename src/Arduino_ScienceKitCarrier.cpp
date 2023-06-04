@@ -79,7 +79,7 @@ ScienceKitCarrier::ScienceKitCarrier(){
 
 
 
-int ScienceKitCarrier::begin(){
+int ScienceKitCarrier::begin(const bool auxiliary_threads){
   pinMode(LEDR,OUTPUT);
   digitalWrite(LEDR,LOW);
   pinMode(LEDG,OUTPUT);
@@ -116,7 +116,9 @@ int ScienceKitCarrier::begin(){
   }
 
   // let's start activity led and bme688
-  //startAuxiliaryThreads();
+  if (auxiliary_threads){
+    startAuxiliaryThreads();
+  }
 }
 
 

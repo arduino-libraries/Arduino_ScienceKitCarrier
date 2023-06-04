@@ -64,6 +64,9 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define ROUND_ROBIN_ENABLED 1
 #define ROUND_ROBIN_DISABLED 0
 
+#define START_AUXILIARY_THREADS 1
+#define NO_AUXILIARY_THREADS 0
+
 
 
 #endif
