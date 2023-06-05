@@ -1,0 +1,105 @@
+#######################################
+# Syntax Coloring Map For Arduino_ScienceKitCarrier
+####################################### 
+# Class
+#######################################
+
+ScienceKitCarrier	KEYWORD1
+
+#######################################
+# Methods and Functions 
+#######################################	
+
+begin	KEYWORD2
+update	KEYWORD2
+startAuxiliaryThreads KEYWORD2
+
+
+beginAnalogInput KEYWORD2
+updateAnalogInput KEYWORD2
+getInputA KEYWORD2
+getInputB KEYWORD2
+
+beginAPDS KEYWORD2
+updateAPDS KEYWORD2
+getProximity KEYWORD2
+getRed KEYWORD2
+getGreen KEYWORD2
+getBlue KEYWORD2
+getClear KEYWORD2
+
+beginINA KEYWORD2
+updateINA KEYWORD2
+getVoltage KEYWORD2
+getCurrent KEYWORD2
+
+beginResistance KEYWORD2
+updateResistance KEYWORD2
+getResistance KEYWORD2
+
+beginBME688 KEYWORD2
+updateBME688 KEYWORD2
+getTemperature KEYWORD2
+getPressure KEYWORD2
+getHumidity KEYWORD2
+getAirQuality KEYWORD2
+threadBME688 KEYWORD2
+
+beginIMU KEYWORD2
+updateIMU KEYWORD2
+getAccelerationX KEYWORD2
+getAccelerationY KEYWORD2
+getAccelerationZ KEYWORD2
+getAngularVelocity KEYWORD2
+getAngularVelocityX KEYWORD2
+getAngularVelocityY KEYWORD2
+getAngularVelocityZ KEYWORD2
+
+getMagneticField KEYWORD2
+getMagneticFieldX KEYWORD2
+getMagneticFieldY KEYWORD2
+getMagneticFieldZ KEYWORD2
+
+beginFrequencyGeneratorData KEYWORD2
+updateFrequencyGeneratorData KEYWORD2
+getFrequency1 KEYWORD2
+getFrequency2 KEYWORD2
+getPhase1 KEYWORD2
+getPhase2 KEYWORD2
+getRange1 KEYWORD2
+getRange2 KEYWORD2
+
+#######################################
+# Constants
+#######################################
+
+INPUTA_PIN LITERAL1
+INPUTB_PIN LITERAL1
+
+INT_APDS9960 LITERAL1
+
+SHUNT_MICRO_OHM LITERAL1
+MAXIMUM_AMPS LITERAL1
+
+RESISTANCE_PIN LITERAL1
+RESISTOR_AUX LITERAL1
+REF_VOLTAGE LITERAL1
+RESISTANCE_CALIBRATION_HIGH LITERAL1
+RESISTANCE_CALIBRATION_LOW LITERAL1
+
+G_EARTH LITERAL1
+
+BME688_CS LITERAL1
+
+ERR_BEGIN_APDS LITERAL1
+ERR_BEGIN_INA LITERAL1
+ERR_BEGIN_IMU LITERAL1
+ERR_BEGIN_BME LITERAL1
+ERR_BEGIN_RESISTANCE LITERAL1
+ERR_BEGIN_FUNCTION_GENERATOR_CONTROLLER LITERAL1
+
+ROUND_ROBIN_DISABLED LITERAL1
+ROUND_ROBIN_ENABLED LITERAL1
+
+START_AUXILIARY_THREADS LITERAL1
+NO_AUXILIARY_THREADS LITERAL1
