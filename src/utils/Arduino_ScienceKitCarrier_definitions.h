@@ -51,6 +51,7 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define ERR_BEGIN_BME -6
 #define ERR_BEGIN_RESISTANCE -7
 #define ERR_BEGIN_FUNCTION_GENERATOR_CONTROLLER -8
+#define ERR_BEGIN_ULTRASONIC -9
 
 
 

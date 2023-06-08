@@ -68,6 +68,11 @@ ScienceKitCarrier::ScienceKitCarrier(){
   range1=0;
   range2=0;
 
+  ultrasonic = new Arduino_GroveI2C_Ultrasonic();
+  distance=0.0;
+  travel_time=0.0;
+  ultrasonic_is_connected=false;
+
   
   thread_activity_led = new rtos::Thread();
   thread_update_bme = new rtos::Thread();
@@ -90,6 +95,8 @@ int ScienceKitCarrier::begin(const bool auxiliary_threads){
 
   Wire.begin();
 
+  // most of begin functions return always 0, it is a code-style or future implementation
+
   // let's start apds89960
   if (beginAPDS()!=0){
     return ERR_BEGIN_APDS;
@@ -100,7 +107,7 @@ int ScienceKitCarrier::begin(const bool auxiliary_threads){
     return ERR_BEGIN_INA;
   }
 
-  // resistance pin
+  // let's start resistance measurement
   if (beginResistance()!=0){
     return ERR_BEGIN_RESISTANCE;
   }
@@ -114,6 +121,12 @@ int ScienceKitCarrier::begin(const bool auxiliary_threads){
   if (beginFrequencyGeneratorData()!=0){
     return ERR_BEGIN_FUNCTION_GENERATOR_CONTROLLER;
   }
+
+  // let's start ultrasonic and check if it is connected
+  if (beginUltrasonic()!=0){
+    return ERR_BEGIN_ULTRASONIC;
+  }
+
 
   // let's start activity led and bme688
   if (auxiliary_threads){
@@ -136,11 +149,15 @@ void ScienceKitCarrier::update(const bool roundrobin){
     updateINA();
     updateResistance();
     updateIMU();
+
+    // update external
+    updateUltrasonic();
   }
   else{
     switch (round_robin_index){
       case 0: 
-        updateAnalogInput();
+        updateAnalogInput();    // it is very fast (about 2ms)
+        updateUltrasonic();     // requires about 5ms when not connected
         break;
       case 1:
         updateAPDS();
@@ -602,6 +619,37 @@ uint8_t ScienceKitCarrier::getRange2(){
   return range2;
 }
 
+/********************************************************************/
+/*                        Ultrasonic Sensor                         */
+/********************************************************************/
+
+int ScienceKitCarrier::beginUltrasonic(){
+  ultrasonic->begin();
+  updateUltrasonic();
+}
+
+void ScienceKitCarrier::updateUltrasonic(){
+  if (ultrasonic->checkConnection()){
+    ultrasonic_is_connected=true;
+    distance=ultrasonic->getMeters();
+    travel_time=ultrasonic->getTravelTime();
+  }
+  else{
+    ultrasonic_is_connected=false;
+  }
+}
+
+float ScienceKitCarrier::getDistance(){
+  return distance;
+}
+
+float ScienceKitCarrier::getTravelTime(){
+  return travel_time;
+}
+
+bool ScienceKitCarrier::getUltrasonicIsConnected(){
+  return ultrasonic_is_connected;
+}
 
 
 

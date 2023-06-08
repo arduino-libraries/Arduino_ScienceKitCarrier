@@ -29,6 +29,7 @@
 #include "INA.h"
 #include "bsec.h"
 #include "Arduino_BMI270_BMM150.h"
+#include "Arduino_GroveI2C_Ultrasonic.h"
 
 #include "./utils/function_generator_controller.h"
 #include "./utils/Arduino_ScienceKitCarrier_definitions.h"
@@ -62,6 +63,10 @@ class ScienceKitCarrier{
 
     FunctionGeneratorController * function_generator_controller;
     uint8_t frequency1, frequency2, phase1, phase2, range1, range2;
+
+    Arduino_GroveI2C_Ultrasonic * ultrasonic;
+    float distance, travel_time;
+    bool ultrasonic_is_connected;
 
 
     rtos::Thread * thread_activity_led;
@@ -166,6 +171,16 @@ class ScienceKitCarrier{
     uint8_t getPhase2();
     uint8_t getRange1();
     uint8_t getRange2();
+
+
+
+    /* Ultrasonic sensor */
+    int beginUltrasonic();
+    void updateUltrasonic();
+    float getDistance();        // meters
+    float getTravelTime();      // microseconds
+    bool getUltrasonicIsConnected();
+
 };
 
 
