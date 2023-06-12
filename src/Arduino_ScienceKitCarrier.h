@@ -31,6 +31,11 @@
 #include "Arduino_BMI270_BMM150.h"
 #include "Arduino_GroveI2C_Ultrasonic.h"
 
+#include "OneWireNg_CurrentPlatform.h"
+#include "drivers/DSTherm.h"
+#include "utils/Placeholder.h"
+
+
 #include "./utils/function_generator_controller.h"
 #include "./utils/Arduino_ScienceKitCarrier_definitions.h"
 
@@ -69,8 +74,12 @@ class ScienceKitCarrier{
     bool ultrasonic_is_connected;
 
 
+    bool external_temperature_is_connected;
+    float external_temperature;
+
     rtos::Thread * thread_activity_led;
     rtos::Thread * thread_update_bme;
+    rtos::Thread * thread_external_temperature;
 
     uint8_t activity_led_state;
 
@@ -180,6 +189,15 @@ class ScienceKitCarrier{
     float getDistance();        // meters
     float getTravelTime();      // microseconds
     bool getUltrasonicIsConnected();
+
+
+
+    /* External temperature probe - dallas */
+    int beginExternalTemperature();
+    void updateExternalTemperature();
+    float getExternalTemperature();     // celsius
+    bool getExternalTemperatureIsConnected();
+    void threadExternalTemperature();
 
 };
 

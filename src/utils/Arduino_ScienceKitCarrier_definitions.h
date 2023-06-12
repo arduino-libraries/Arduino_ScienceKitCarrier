@@ -44,6 +44,9 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 // Bme688
 #define BME688_CS 10
 
+// External temperature
+#define OW_PIN         p26
+
 // Errors
 #define ERR_BEGIN_APDS -3
 #define ERR_BEGIN_INA -4

@@ -651,6 +651,52 @@ bool ScienceKitCarrier::getUltrasonicIsConnected(){
   return ultrasonic_is_connected;
 }
 
+/********************************************************************/
+/*                    External Temperature Probe                    */
+/********************************************************************/
+
+int ScienceKitCarrier::beginExternalTemperature(){
+
+}
+
+void ScienceKitCarrier::updateExternalTemperature(){
+  float temperature;
+  DSTherm drv(ow);
+  drv.convertTempAll(DSTherm::MAX_CONV_TIME, false);    
+
+  static Placeholder<DSTherm::Scratchpad> scrpd;
+
+  OneWireNg::ErrorCode ec = drv.readScratchpadSingle(scrpd);
+  if (ec == OneWireNg::EC_SUCCESS) {
+    if (scrpd->getAddr()!=15){
+      external_temperature_is_connected=false;
+    }
+    else{
+      long temp = scrpd->getTemp();
+      int sign=1;
+      if (temp < 0) {
+        temp = -temp;
+        sign=-1;
+      }
+      temperature = (temp/1000)+(temp%1000)*0.001;
+      external_temperature = sign*temperature;
+      external_temperature_is_connected=true;
+    }   
+  }
+}
+
+float ScienceKitCarrier::getExternalTemperature(){
+
+}
+
+bool ScienceKitCarrier::getExternalTemperatureIsConnected(){
+
+}
+
+void ScienceKitCarrier::threadExternalTemperature(){
+
+}
+
 
 
 
