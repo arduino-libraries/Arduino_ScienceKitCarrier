@@ -1,5 +1,5 @@
 /*
-  This file is part of the Arduino_GroveI2C_Ultrasonic library.
+  This file is part of the Arduino_ScienceKitCarrier library.
   Copyright (c) 2023 Arduino SA. All rights reserved.
 
   This library is free software; you can redistribute it and/or
@@ -76,7 +76,7 @@ void setup() {
   BLE.addService(service);
   BLE.advertise();
   science_kit.startAuxiliaryThreads(); // start the BME688 thread
-  _t.start(loop_data);
+  //_t.start(loop_data);
   _tu.start(update);
 }
 
@@ -112,7 +112,6 @@ void loop() {
         updateSubscribedCharacteristics();
         lastNotify=millis();
       }
-
     }
   } else {
     delay(100);
@@ -195,6 +194,6 @@ void updateSubscribedCharacteristics() {
   }
 
   if (inputBCharacteristic.subscribed()){
-    inputBCharacteristic.writeValue(science_kit.getInputB());
+    inputBCharacteristic.writeValue(science_kit.getExternalTemperature());
   }
 }

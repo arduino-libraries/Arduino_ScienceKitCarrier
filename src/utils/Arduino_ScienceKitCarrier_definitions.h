@@ -23,6 +23,7 @@
 // Grove pads
 #define INPUTA_PIN A0
 #define INPUTB_PIN A1
+#define ANALOGIN_DISABLED 0
 
 // APDS9960
 #define INT_APDS9960 9
@@ -44,8 +45,10 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 // Bme688
 #define BME688_CS 10
 
-// External temperature
-#define OW_PIN         p26
+// External temperature connected on input A
+#define OW_PIN         p26 //digitalPinToPinName(INPUTA_PIN)
+#define EXTERNAL_TEMPERATURE_DISABLED -273.0; // absolute zero xD
+
 
 // Errors
 #define ERR_BEGIN_APDS -3
@@ -55,6 +58,7 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define ERR_BEGIN_RESISTANCE -7
 #define ERR_BEGIN_FUNCTION_GENERATOR_CONTROLLER -8
 #define ERR_BEGIN_ULTRASONIC -9
+#define ERR_BEGIN_EXTERNAL_TEMPERATURE -10
 
 
 

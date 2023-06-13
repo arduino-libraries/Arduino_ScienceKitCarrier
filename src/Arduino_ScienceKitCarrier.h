@@ -39,14 +39,17 @@
 #include "./utils/function_generator_controller.h"
 #include "./utils/Arduino_ScienceKitCarrier_definitions.h"
 
+static  Placeholder<OneWireNg_CurrentPlatform> ow;
+
 
 
 class ScienceKitCarrier{
   private:
-    uint8_t round_robin_index = 0;
+    uint8_t round_robin_index;
 
     uint8_t inputA_pin, inputB_pin;
     int inputA, inputB;
+    uint8_t timer_inputA;
 
     APDS9960 * apds9960;
     int r,g,b,c, proximity;
@@ -76,6 +79,8 @@ class ScienceKitCarrier{
 
     bool external_temperature_is_connected;
     float external_temperature;
+
+
 
     rtos::Thread * thread_activity_led;
     rtos::Thread * thread_update_bme;
@@ -192,7 +197,7 @@ class ScienceKitCarrier{
 
 
 
-    /* External temperature probe - dallas */
+    /* External temperature probe - Dallas DS18B20 */
     int beginExternalTemperature();
     void updateExternalTemperature();
     float getExternalTemperature();     // celsius

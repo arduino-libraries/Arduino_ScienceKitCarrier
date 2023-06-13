@@ -27,6 +27,7 @@ ScienceKitCarrier::ScienceKitCarrier(){
   inputB_pin = INPUTB_PIN;
   inputA=0;
   inputB=0;
+  timer_inputA = 0;
 
   apds9960 = new APDS9960(Wire,INT_APDS9960);
   proximity=0;
@@ -73,9 +74,14 @@ ScienceKitCarrier::ScienceKitCarrier(){
   travel_time=0.0;
   ultrasonic_is_connected=false;
 
+  external_temperature=EXTERNAL_TEMPERATURE_DISABLED;
+  external_temperature_is_connected=false;
+
+  round_robin_index = 0;
   
   thread_activity_led = new rtos::Thread();
   thread_update_bme = new rtos::Thread();
+  thread_external_temperature = new rtos::Thread();
 
   activity_led_state = ACTIVITY_LED_OFF;
 }
@@ -83,6 +89,10 @@ ScienceKitCarrier::ScienceKitCarrier(){
 
 
 
+
+/********************************************************************/
+/*                              Begin                               */
+/********************************************************************/
 
 int ScienceKitCarrier::begin(const bool auxiliary_threads){
   pinMode(LEDR,OUTPUT);
@@ -97,7 +107,7 @@ int ScienceKitCarrier::begin(const bool auxiliary_threads){
 
   // most of begin functions return always 0, it is a code-style or future implementation
 
-  // let's start apds89960
+  // let's start apds9960
   if (beginAPDS()!=0){
     return ERR_BEGIN_APDS;
   }
@@ -128,7 +138,7 @@ int ScienceKitCarrier::begin(const bool auxiliary_threads){
   }
 
 
-  // let's start activity led and bme688
+  // let's start bme688 and external ds18b20 probe
   if (auxiliary_threads){
     startAuxiliaryThreads();
   }
@@ -149,6 +159,7 @@ void ScienceKitCarrier::update(const bool roundrobin){
     updateINA();
     updateResistance();
     updateIMU();
+    updateFrequencyGeneratorData();
 
     // update external
     updateUltrasonic();
@@ -156,20 +167,21 @@ void ScienceKitCarrier::update(const bool roundrobin){
   else{
     switch (round_robin_index){
       case 0: 
-        updateAnalogInput();    // it is very fast (about 2ms)
-        updateUltrasonic();     // requires about 5ms when not connected
+        //updateAnalogInput();               // it is very fast (about 1ms)
+        updateFrequencyGeneratorData();    // less than 1ms
         break;
       case 1:
-        updateAPDS();
+        updateAPDS();                      // about 5ms
         break;
       case 2:
-        updateINA();
+        updateINA();                       // about 3ms
         break;
       case 3:
-        updateResistance();
+        updateResistance();                // about 1ms
+        updateUltrasonic();                // requires about 5ms when not connected
         break;
       case 4:
-        updateIMU();
+        updateIMU();                       // heavy task, 13ms
         break;
       default:
         break;
@@ -189,13 +201,20 @@ void ScienceKitCarrier::update(const bool roundrobin){
 /********************************************************************/
 
 int ScienceKitCarrier::beginAnalogInput(){
+  /*
   pinMode(inputA_pin, INPUT);
   pinMode(inputB_pin, INPUT);
+  */
   return 0;
 }
 
 void ScienceKitCarrier::updateAnalogInput(){
-  inputA=analogRead(inputA_pin);
+  if (!getExternalTemperatureIsConnected()){
+    inputA=analogRead(inputA_pin);
+  }
+  else{
+    inputA=ANALOGIN_DISABLED;
+  }
   inputB=analogRead(inputB_pin);
 }
 
@@ -397,7 +416,7 @@ float ScienceKitCarrier::getAirQuality(){
 
 void ScienceKitCarrier::threadBME688(){
   beginBME688();
-  while(true){
+  while(1){
     updateBME688();
     rtos::ThisThread::sleep_for(1000);
   }
@@ -656,7 +675,9 @@ bool ScienceKitCarrier::getUltrasonicIsConnected(){
 /********************************************************************/
 
 int ScienceKitCarrier::beginExternalTemperature(){
-
+  new (&ow) OneWireNg_CurrentPlatform(OW_PIN, false);
+  DSTherm drv(ow);
+  return 0;
 }
 
 void ScienceKitCarrier::updateExternalTemperature(){
@@ -670,8 +691,10 @@ void ScienceKitCarrier::updateExternalTemperature(){
   if (ec == OneWireNg::EC_SUCCESS) {
     if (scrpd->getAddr()!=15){
       external_temperature_is_connected=false;
+      external_temperature = EXTERNAL_TEMPERATURE_DISABLED;
     }
     else{
+      external_temperature_is_connected=true;
       long temp = scrpd->getTemp();
       int sign=1;
       if (temp < 0) {
@@ -680,21 +703,27 @@ void ScienceKitCarrier::updateExternalTemperature(){
       }
       temperature = (temp/1000)+(temp%1000)*0.001;
       external_temperature = sign*temperature;
-      external_temperature_is_connected=true;
     }   
   }
 }
 
 float ScienceKitCarrier::getExternalTemperature(){
-
+  return external_temperature;
 }
 
 bool ScienceKitCarrier::getExternalTemperatureIsConnected(){
-
+  return external_temperature_is_connected;
 }
 
 void ScienceKitCarrier::threadExternalTemperature(){
-
+  beginExternalTemperature();
+  while(1){
+    updateAnalogInput();
+    digitalWrite(2,HIGH);
+    updateExternalTemperature();
+    digitalWrite(2,LOW);
+    rtos::ThisThread::sleep_for(1000);
+  }
 }
 
 
@@ -708,4 +737,5 @@ void ScienceKitCarrier::threadExternalTemperature(){
 void ScienceKitCarrier::startAuxiliaryThreads(){
   //thread_activity_led->start(mbed::callback(this, &ScienceKitCarrier::threadActivityLed));
   thread_update_bme->start(mbed::callback(this, &ScienceKitCarrier::threadBME688)); 
+  thread_external_temperature->start(mbed::callback(this, &ScienceKitCarrier::threadExternalTemperature));
 }
