@@ -24,15 +24,12 @@ unsigned long lastNotify = 0;
 
 ScienceKitCarrier science_kit;
 
-//rtos::Thread _thread_check_connection(osPriorityHigh);
 rtos::Thread _thread_update_sensors;
 
 bool _is_connected = false;
 
 
 void setup() {
-  //pinMode(8,OUTPUT);
-  //pinMode(7,OUTPUT);
 
   science_kit.begin(NO_AUXILIARY_THREADS); // Doesn't start the BME688 and external temperature threads for the moment
 
@@ -82,23 +79,10 @@ void setup() {
   _thread_update_sensors.start(update); // this thread updates sensors
 }
 
-/*
-void loop_data() {
-  bool last_connected_status = _is_connected;
-  while (1) {
-    delay(1000);
-    if (last_connected_status != _is_connected) {
-      digitalWrite(7, _is_connected ? HIGH : LOW);
-    }
-  }
-}
-*/
 
 void update(void){
   while(1){
-    //digitalWrite(8,HIGH);
     science_kit.update(ROUND_ROBIN_ENABLED);
-    //digitalWrite(8,LOW);
     rtos::ThisThread::sleep_for(20);
   }
 }
@@ -183,6 +167,7 @@ void updateSubscribedCharacteristics() {
     humidityCharacteristic.writeValue(science_kit.getHumidity());
   }
   
+  // need to be fix
   if(sndIntensityCharacteristic.subscribed()) {
     if (science_kit.getUltrasonicIsConnected()){
       sndIntensityCharacteristic.writeValue(science_kit.getDistance()*100.0);
@@ -192,6 +177,7 @@ void updateSubscribedCharacteristics() {
     }
   }
 
+  // need to be fix
   if(sndPitchCharacteristic.subscribed()) {
     sndPitchCharacteristic.writeValue(science_kit.getExternalTemperature());
   }
