@@ -1,5 +1,5 @@
 /*
-  This file is part of the Arduino_GroveI2C_Ultrasonic library.
+  This file is part of the Arduino_ScienceKitCarrier library.
   Copyright (c) 2023 Arduino SA. All rights reserved.
 
   This library is free software; you can redistribute it and/or
@@ -49,7 +49,7 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define BME688_CS 10
 
 // External temperature connected on input A
-#define OW_PIN         p26 //digitalPinToPinName(INPUTA_PIN)
+#define OW_PIN digitalPinToPinName(INPUTA_PIN)
 #define EXTERNAL_TEMPERATURE_DISABLED -273.0; // absolute zero xD
 
 

@@ -1,5 +1,5 @@
 /*
-  This file is part of the Arduino_GroveI2C_Ultrasonic library.
+  This file is part of the Arduino_ScienceKitCarrier library.
   Copyright (c) 2023 Arduino SA. All rights reserved.
 
   This library is free software; you can redistribute it and/or
@@ -727,9 +727,7 @@ void ScienceKitCarrier::threadExternalTemperature(){
   beginExternalTemperature();
   while(1){
     updateAnalogInput(UPDATE_INPUT_A);
-    digitalWrite(2,HIGH);
     updateExternalTemperature();
-    digitalWrite(2,LOW);
     rtos::ThisThread::sleep_for(1000);
   }
 }

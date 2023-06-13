@@ -24,17 +24,17 @@ unsigned long lastNotify = 0;
 
 ScienceKitCarrier science_kit;
 
-rtos::Thread _t(osPriorityHigh);
-rtos::Thread _tu;
+//rtos::Thread _thread_check_connection(osPriorityHigh);
+rtos::Thread _thread_update_sensors;
 
-
+bool _is_connected = false;
 
 
 void setup() {
-  pinMode(8,OUTPUT);
-  pinMode(7,OUTPUT);
+  //pinMode(8,OUTPUT);
+  //pinMode(7,OUTPUT);
 
-  science_kit.begin(NO_AUXILIARY_THREADS); // Doesn't start the BME688 thread for the moment
+  science_kit.begin(NO_AUXILIARY_THREADS); // Doesn't start the BME688 and external temperature threads for the moment
 
   if (!BLE.begin()) {
     while(1);
@@ -75,13 +75,14 @@ void setup() {
 
   BLE.addService(service);
   BLE.advertise();
+
   science_kit.startAuxiliaryThreads(); // start the BME688 and External Temperature Probe threads
-  //_t.start(loop_data);
-  _tu.start(update);
+
+  //_thread_check_connection.start(loop_data);
+  _thread_update_sensors.start(update); // this thread updates sensors
 }
 
-bool _is_connected = false;
-
+/*
 void loop_data() {
   bool last_connected_status = _is_connected;
   while (1) {
@@ -91,18 +92,18 @@ void loop_data() {
     }
   }
 }
+*/
 
 void update(void){
   while(1){
-    digitalWrite(8,HIGH);
+    //digitalWrite(8,HIGH);
     science_kit.update(ROUND_ROBIN_ENABLED);
-    digitalWrite(8,LOW);
+    //digitalWrite(8,LOW);
     rtos::ThisThread::sleep_for(20);
   }
 }
 
-void loop() {
-  
+void loop(){
   BLEDevice central = BLE.central();
   if (central) {
     _is_connected = true;
@@ -113,7 +114,8 @@ void loop() {
         lastNotify=millis();
       }
     }
-  } else {
+  }
+  else {
     delay(100);
     _is_connected = false;
   }
@@ -182,7 +184,12 @@ void updateSubscribedCharacteristics() {
   }
   
   if(sndIntensityCharacteristic.subscribed()) {
-    sndIntensityCharacteristic.writeValue(science_kit.getFrequency1());
+    if (science_kit.getUltrasonicIsConnected()){
+      sndIntensityCharacteristic.writeValue(science_kit.getDistance()*100.0);
+    }
+    else{
+      sndIntensityCharacteristic.writeValue(-1.0);
+    }
   }
 
   if(sndPitchCharacteristic.subscribed()) {
