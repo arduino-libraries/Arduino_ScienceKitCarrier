@@ -86,14 +86,17 @@ class ScienceKitCarrier{
     rtos::Thread * thread_update_bme;
     rtos::Thread * thread_external_temperature;
 
+    bool thread_bme_is_running;
+    bool thread_ext_temperature_is_running;
+
     uint8_t activity_led_state;
 
   public:
     ScienceKitCarrier();
 
-    int begin(const bool auxiliary_threads=true);
+    int begin(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
     void update(const bool roundrobin=false);  // this makes update on: analog in, imu, apds, ina, resistance, round robin enables one sensor update
-    void startAuxiliaryThreads();
+    void startAuxiliaryThreads(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
 
 
 
@@ -112,7 +115,7 @@ class ScienceKitCarrier{
 
     /* Analog input connected to Grove connectors A and B */
     int beginAnalogInput();
-    void updateAnalogInput();
+    void updateAnalogInput(const uint8_t input_to_update=UPDATE_ALL);
     int getInputA();              // 0-1024
     int getInputB();              // 0-1024
 

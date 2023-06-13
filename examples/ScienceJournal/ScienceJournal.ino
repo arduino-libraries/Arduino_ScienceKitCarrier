@@ -75,7 +75,7 @@ void setup() {
 
   BLE.addService(service);
   BLE.advertise();
-  science_kit.startAuxiliaryThreads(); // start the BME688 thread
+  science_kit.startAuxiliaryThreads(); // start the BME688 and External Temperature Probe threads
   //_t.start(loop_data);
   _tu.start(update);
 }
@@ -182,11 +182,11 @@ void updateSubscribedCharacteristics() {
   }
   
   if(sndIntensityCharacteristic.subscribed()) {
-    sndIntensityCharacteristic.writeValue(0);
+    sndIntensityCharacteristic.writeValue(science_kit.getFrequency1());
   }
 
   if(sndPitchCharacteristic.subscribed()) {
-    sndPitchCharacteristic.writeValue(0);
+    sndPitchCharacteristic.writeValue(science_kit.getExternalTemperature());
   }
 
   if (inputACharacteristic.subscribed()){
@@ -194,6 +194,6 @@ void updateSubscribedCharacteristics() {
   }
 
   if (inputBCharacteristic.subscribed()){
-    inputBCharacteristic.writeValue(science_kit.getExternalTemperature());
+    inputBCharacteristic.writeValue(science_kit.getInputB());
   }
 }

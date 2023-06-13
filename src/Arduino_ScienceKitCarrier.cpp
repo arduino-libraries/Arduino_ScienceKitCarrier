@@ -83,6 +83,9 @@ ScienceKitCarrier::ScienceKitCarrier(){
   thread_update_bme = new rtos::Thread();
   thread_external_temperature = new rtos::Thread();
 
+  thread_bme_is_running = false;
+  thread_ext_temperature_is_running = false;
+
   activity_led_state = ACTIVITY_LED_OFF;
 }
 
@@ -94,7 +97,7 @@ ScienceKitCarrier::ScienceKitCarrier(){
 /*                              Begin                               */
 /********************************************************************/
 
-int ScienceKitCarrier::begin(const bool auxiliary_threads){
+int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
   pinMode(LEDR,OUTPUT);
   digitalWrite(LEDR,LOW);
   pinMode(LEDG,OUTPUT);
@@ -139,9 +142,7 @@ int ScienceKitCarrier::begin(const bool auxiliary_threads){
 
 
   // let's start bme688 and external ds18b20 probe
-  if (auxiliary_threads){
-    startAuxiliaryThreads();
-  }
+  startAuxiliaryThreads(auxiliary_threads);
 }
 
 
@@ -167,21 +168,26 @@ void ScienceKitCarrier::update(const bool roundrobin){
   else{
     switch (round_robin_index){
       case 0: 
-        //updateAnalogInput();               // it is very fast (about 1ms)
-        updateFrequencyGeneratorData();    // less than 1ms
+        if (thread_ext_temperature_is_running){
+          updateAnalogInput(UPDATE_INPUT_B); // it is very fast (about 1ms)
+        }
+        else{
+          updateAnalogInput();               // updated both A and B channel
+        }
+        updateFrequencyGeneratorData();      // less than 1ms
         break;
       case 1:
-        updateAPDS();                      // about 5ms
+        updateAPDS();                        // about 5ms
         break;
       case 2:
-        updateINA();                       // about 3ms
+        updateINA();                         // about 3ms
         break;
       case 3:
-        updateResistance();                // about 1ms
-        updateUltrasonic();                // requires about 5ms when not connected
+        updateResistance();                  // about 1ms
+        updateUltrasonic();                  // requires about 5ms when not connected
         break;
       case 4:
-        updateIMU();                       // heavy task, 13ms
+        updateIMU();                         // heavy task, 13ms
         break;
       default:
         break;
@@ -201,21 +207,23 @@ void ScienceKitCarrier::update(const bool roundrobin){
 /********************************************************************/
 
 int ScienceKitCarrier::beginAnalogInput(){
-  /*
   pinMode(inputA_pin, INPUT);
   pinMode(inputB_pin, INPUT);
-  */
   return 0;
 }
 
-void ScienceKitCarrier::updateAnalogInput(){
-  if (!getExternalTemperatureIsConnected()){
-    inputA=analogRead(inputA_pin);
+void ScienceKitCarrier::updateAnalogInput(const uint8_t input_to_update){
+  if ((input_to_update==UPDATE_INPUT_A)||(input_to_update==UPDATE_ALL)){
+    if (!getExternalTemperatureIsConnected()){
+      inputA=analogRead(inputA_pin);
+    }
+    else{
+      inputA=ANALOGIN_DISABLED;
+    } 
   }
-  else{
-    inputA=ANALOGIN_DISABLED;
+  if ((input_to_update==UPDATE_INPUT_B)||(input_to_update==UPDATE_ALL)){
+    inputB=analogRead(inputB_pin);
   }
-  inputB=analogRead(inputB_pin);
 }
 
 int ScienceKitCarrier::getInputA(){
@@ -718,7 +726,7 @@ bool ScienceKitCarrier::getExternalTemperatureIsConnected(){
 void ScienceKitCarrier::threadExternalTemperature(){
   beginExternalTemperature();
   while(1){
-    updateAnalogInput();
+    updateAnalogInput(UPDATE_INPUT_A);
     digitalWrite(2,HIGH);
     updateExternalTemperature();
     digitalWrite(2,LOW);
@@ -734,8 +742,22 @@ void ScienceKitCarrier::threadExternalTemperature(){
 /*                              Threads                             */
 /********************************************************************/
 
-void ScienceKitCarrier::startAuxiliaryThreads(){
-  //thread_activity_led->start(mbed::callback(this, &ScienceKitCarrier::threadActivityLed));
-  thread_update_bme->start(mbed::callback(this, &ScienceKitCarrier::threadBME688)); 
-  thread_external_temperature->start(mbed::callback(this, &ScienceKitCarrier::threadExternalTemperature));
+void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
+  //thread_activity_led->start(mbed::callback(this, &ScienceKitCarrier::threadActivityLed));    //left for legacy on prototypes and maybe future implementations
+
+  // start bme688 thread
+  if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_INTERNAL_AMBIENT_SENSOR)){
+    if (!thread_bme_is_running){
+      thread_update_bme->start(mbed::callback(this, &ScienceKitCarrier::threadBME688)); 
+    }
+    thread_bme_is_running=true;
+  }
+
+  // start ds18b20 thread
+  if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_EXTERNAL_AMBIENT_SENSOR)){
+    if (!thread_ext_temperature_is_running){
+      thread_external_temperature->start(mbed::callback(this, &ScienceKitCarrier::threadExternalTemperature));
+    }
+    thread_ext_temperature_is_running=true;
+  }
 }
