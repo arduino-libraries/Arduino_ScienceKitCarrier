@@ -29,18 +29,27 @@
 #include "INA.h"
 #include "bsec.h"
 #include "Arduino_BMI270_BMM150.h"
+#include "Arduino_GroveI2C_Ultrasonic.h"
+
+#include "OneWireNg_CurrentPlatform.h"
+#include "drivers/DSTherm.h"
+#include "utils/Placeholder.h"
+
 
 #include "./utils/function_generator_controller.h"
 #include "./utils/Arduino_ScienceKitCarrier_definitions.h"
+
+static  Placeholder<OneWireNg_CurrentPlatform> ow;
 
 
 
 class ScienceKitCarrier{
   private:
-    uint8_t round_robin_index = 0;
+    uint8_t round_robin_index;
 
     uint8_t inputA_pin, inputB_pin;
     int inputA, inputB;
+    uint8_t timer_inputA;
 
     APDS9960 * apds9960;
     int r,g,b,c, proximity;
@@ -63,18 +72,31 @@ class ScienceKitCarrier{
     FunctionGeneratorController * function_generator_controller;
     uint8_t frequency1, frequency2, phase1, phase2, range1, range2;
 
+    Arduino_GroveI2C_Ultrasonic * ultrasonic;
+    float distance, travel_time;
+    bool ultrasonic_is_connected;
+
+
+    bool external_temperature_is_connected;
+    float external_temperature;
+
+
 
     rtos::Thread * thread_activity_led;
     rtos::Thread * thread_update_bme;
+    rtos::Thread * thread_external_temperature;
+
+    bool thread_bme_is_running;
+    bool thread_ext_temperature_is_running;
 
     uint8_t activity_led_state;
 
   public:
     ScienceKitCarrier();
 
-    int begin(const bool auxiliary_threads=true);
+    int begin(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
     void update(const bool roundrobin=false);  // this makes update on: analog in, imu, apds, ina, resistance, round robin enables one sensor update
-    void startAuxiliaryThreads();
+    void startAuxiliaryThreads(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
 
 
 
@@ -93,7 +115,7 @@ class ScienceKitCarrier{
 
     /* Analog input connected to Grove connectors A and B */
     int beginAnalogInput();
-    void updateAnalogInput();
+    void updateAnalogInput(const uint8_t input_to_update=UPDATE_ALL);
     int getInputA();              // 0-1024
     int getInputB();              // 0-1024
 
@@ -166,6 +188,25 @@ class ScienceKitCarrier{
     uint8_t getPhase2();
     uint8_t getRange1();
     uint8_t getRange2();
+
+
+
+    /* Ultrasonic sensor */
+    int beginUltrasonic();
+    void updateUltrasonic();
+    float getDistance();        // meters
+    float getTravelTime();      // microseconds
+    bool getUltrasonicIsConnected();
+
+
+
+    /* External temperature probe - Dallas DS18B20 */
+    int beginExternalTemperature();
+    void updateExternalTemperature();
+    float getExternalTemperature();     // celsius
+    bool getExternalTemperatureIsConnected();
+    void threadExternalTemperature();
+
 };
 
 
