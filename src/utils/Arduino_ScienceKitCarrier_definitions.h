@@ -82,4 +82,12 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 
 
 
+
+
+// Servos
+#define SERVO_A_PIN 3
+#define SERVO_B_PIN 2
+
+
+
 #endif
