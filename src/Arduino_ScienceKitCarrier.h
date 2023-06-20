@@ -31,7 +31,9 @@
 #include "Arduino_BMI270_BMM150.h"
 #include "Arduino_GroveI2C_Ultrasonic.h"
 
-#include "OneWireNg_CurrentPlatform.h"
+//#include "OneWireNg_CurrentPlatform.h"
+#include "../../OneWireNg/src/platform/OneWireNg_PicoRP2040.h"
+#define OneWireNg_CurrentPlatform OneWireNg_PicoRP2040
 #include "drivers/DSTherm.h"
 #include "utils/Placeholder.h"
 

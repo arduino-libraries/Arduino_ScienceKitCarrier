@@ -690,7 +690,9 @@ int ScienceKitCarrier::beginExternalTemperature(){
 
 void ScienceKitCarrier::updateExternalTemperature(){
   float temperature;
+  pinMode(OW_PIN,INPUT);
   DSTherm drv(ow);
+
   drv.convertTempAll(DSTherm::MAX_CONV_TIME, false);    
 
   static Placeholder<DSTherm::Scratchpad> scrpd;
@@ -715,6 +717,7 @@ void ScienceKitCarrier::updateExternalTemperature(){
   }
 }
 
+
 float ScienceKitCarrier::getExternalTemperature(){
   return external_temperature;
 }
@@ -726,8 +729,9 @@ bool ScienceKitCarrier::getExternalTemperatureIsConnected(){
 void ScienceKitCarrier::threadExternalTemperature(){
   beginExternalTemperature();
   while(1){
-    updateAnalogInput(UPDATE_INPUT_A);
+    //updateAnalogInput(UPDATE_INPUT_A);
     updateExternalTemperature();
+    updateAnalogInput(UPDATE_INPUT_A);
     rtos::ThisThread::sleep_for(1000);
   }
 }
