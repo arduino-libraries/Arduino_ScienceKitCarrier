@@ -227,13 +227,25 @@ class ScienceKitCarrier{
 
 };
 
-/*
-// static members must be initialized externally the class definition
-short ScienceKitCarrier::sampleBuffer[MICROPHONE_BUFFER_SIZE];
-volatile int ScienceKitCarrier::samplesRead;
-*/
-
 
 
 
 #endif
+
+
+
+/***
+ *                       _       _                                    
+ *         /\           | |     (_)                                   
+ *        /  \   _ __ __| |_   _ _ _ __   ___                         
+ *       / /\ \ | '__/ _` | | | | | '_ \ / _ \                        
+ *      / ____ \| | | (_| | |_| | | | | | (_) |                       
+ *     /_/____\_\_| _\__,_|\__,_|_|_| |_|\___/ ___ _     _____  ____  
+ *      / ____|    (_)                     | |/ (_) |   |  __ \|___ \ 
+ *     | (___   ___ _  ___ _ __   ___ ___  | ' / _| |_  | |__) | __) |
+ *      \___ \ / __| |/ _ \ '_ \ / __/ _ \ |  < | | __| |  _  / |__ < 
+ *      ____) | (__| |  __/ | | | (_|  __/ | . \| | |_  | | \ \ ___) |
+ *     |_____/ \___|_|\___|_| |_|\___\___| |_|\_\_|\__| |_|  \_\____/ 
+ *                                                                    
+ *                                                                    
+ */

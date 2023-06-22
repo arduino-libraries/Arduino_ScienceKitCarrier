@@ -28,8 +28,7 @@ rtos::Thread thread_update_sensors;
 bool ble_is_connected = false;
 
 
-void setup() {
-
+void setup(){
   science_kit.begin(NO_AUXILIARY_THREADS); // Doesn't start the BME688 and external temperature threads for the moment
 
   if (!BLE.begin()){
@@ -81,7 +80,7 @@ void setup() {
 void update(void){
   while(1){
     science_kit.update(ROUND_ROBIN_ENABLED);
-    rtos::ThisThread::sleep_for(20);
+    rtos::ThisThread::sleep_for(25);
   }
 }
 
@@ -125,8 +124,16 @@ void updateSubscribedCharacteristics(){
     lightCharacteristic.writeValue((byte*)light, sizeof(light));
   }
 
-  if (proximityCharacteristic.subscribed()){
+  if (proximityCharacteristic.subscribed()){                                                    // need to be fixed
+    /*
     proximityCharacteristic.writeValue(science_kit.getProximity());
+    */
+    if (science_kit.getUltrasonicIsConnected()){
+      proximityCharacteristic.writeValue(science_kit.getDistance()*100.0);
+    }
+    else{
+      proximityCharacteristic.writeValue(-1.0);
+    }
   }
   
   if (accelerationCharacteristic.subscribed()){
@@ -165,26 +172,44 @@ void updateSubscribedCharacteristics(){
     humidityCharacteristic.writeValue(science_kit.getHumidity());
   }
   
-  // need to be fix
+  // need to be fixed
   if(sndIntensityCharacteristic.subscribed()){
-    if (science_kit.getUltrasonicIsConnected()){
-      sndIntensityCharacteristic.writeValue(science_kit.getDistance()*100.0);
-    }
-    else{
-      sndIntensityCharacteristic.writeValue(-1.0);
-    }
+    sndIntensityCharacteristic.writeValue(science_kit.getMicrophoneRMS());
   }
 
-  // need to be fix
+  // need to be fixed
   if(sndPitchCharacteristic.subscribed()){
     sndPitchCharacteristic.writeValue(science_kit.getExternalTemperature());
   }
 
   if (inputACharacteristic.subscribed()){
+    /*
     inputACharacteristic.writeValue(science_kit.getInputA());
+    */
+    inputACharacteristic.writeValue(science_kit.getFrequency1());
   }
 
   if (inputBCharacteristic.subscribed()){
     inputBCharacteristic.writeValue(science_kit.getInputB());
   }
 }
+
+
+
+
+
+/***
+ *                       _       _                                    
+ *         /\           | |     (_)                                   
+ *        /  \   _ __ __| |_   _ _ _ __   ___                         
+ *       / /\ \ | '__/ _` | | | | | '_ \ / _ \                        
+ *      / ____ \| | | (_| | |_| | | | | | (_) |                       
+ *     /_/____\_\_| _\__,_|\__,_|_|_| |_|\___/ ___ _     _____  ____  
+ *      / ____|    (_)                     | |/ (_) |   |  __ \|___ \ 
+ *     | (___   ___ _  ___ _ __   ___ ___  | ' / _| |_  | |__) | __) |
+ *      \___ \ / __| |/ _ \ '_ \ / __/ _ \ |  < | | __| |  _  / |__ < 
+ *      ____) | (__| |  __/ | | | (_|  __/ | . \| | |_  | | \ \ ___) |
+ *     |_____/ \___|_|\___|_| |_|\___\___| |_|\_\_|\__| |_|  \_\____/ 
+ *                                                                    
+ *                                                                    
+ */

@@ -142,14 +142,14 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
     return ERR_BEGIN_FUNCTION_GENERATOR_CONTROLLER;
   }
 
-  // let's start ultrasonic and check if it is connected
-  if (beginUltrasonic()!=0){
-    return ERR_BEGIN_ULTRASONIC;
-  }
-
   // let's start microphone (PDM on Arduino Nano RP2040 Connect)
   if (beginMicrophone()!=0){
     return ERR_BEGIN_MICROPHONE;
+  }
+
+    // let's start ultrasonic and check if it is connected
+  if (beginUltrasonic()!=0){
+    return ERR_BEGIN_ULTRASONIC;
   }
 
   // let's start bme688 and external ds18b20 probe
@@ -816,3 +816,22 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
     thread_ext_temperature_is_running=true;
   }
 }
+
+
+
+
+/***
+ *                       _       _                                    
+ *         /\           | |     (_)                                   
+ *        /  \   _ __ __| |_   _ _ _ __   ___                         
+ *       / /\ \ | '__/ _` | | | | | '_ \ / _ \                        
+ *      / ____ \| | | (_| | |_| | | | | | (_) |                       
+ *     /_/____\_\_| _\__,_|\__,_|_|_| |_|\___/ ___ _     _____  ____  
+ *      / ____|    (_)                     | |/ (_) |   |  __ \|___ \ 
+ *     | (___   ___ _  ___ _ __   ___ ___  | ' / _| |_  | |__) | __) |
+ *      \___ \ / __| |/ _ \ '_ \ / __/ _ \ |  < | | __| |  _  / |__ < 
+ *      ____) | (__| |  __/ | | | (_|  __/ | . \| | |_  | | \ \ ___) |
+ *     |_____/ \___|_|\___|_| |_|\___\___| |_|\_\_|\__| |_|  \_\____/ 
+ *                                                                    
+ *                                                                    
+ */
