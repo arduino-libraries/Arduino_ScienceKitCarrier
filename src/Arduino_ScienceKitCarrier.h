@@ -30,9 +30,9 @@
 #include "bsec.h"
 #include "Arduino_BMI270_BMM150.h"
 #include "Arduino_GroveI2C_Ultrasonic.h"
+#include <PDM.h>
 
-//#include "OneWireNg_CurrentPlatform.h"
-#include "../../OneWireNg/src/platform/OneWireNg_PicoRP2040.h"
+#include "../../OneWireNg/src/platform/OneWireNg_PicoRP2040.h"  // forces to use gpio insted PIO hw
 #define OneWireNg_CurrentPlatform OneWireNg_PicoRP2040
 #include "drivers/DSTherm.h"
 #include "utils/Placeholder.h"
@@ -78,10 +78,14 @@ class ScienceKitCarrier{
     float distance, travel_time;
     bool ultrasonic_is_connected;
 
-
     bool external_temperature_is_connected;
     float external_temperature;
 
+
+
+    uint microphone_rms, rms;
+    static const char channels = MICROPHONE_CHANNELS;
+    static const int frequency = MICROPHONE_FREQUENCY;
 
 
     rtos::Thread * thread_activity_led;
@@ -209,7 +213,25 @@ class ScienceKitCarrier{
     bool getExternalTemperatureIsConnected();
     void threadExternalTemperature();
 
+
+
+    /* Microphone - onboard PDM */
+    int beginMicrophone();
+    void updateMicrophone();  
+    static void updateMicrophoneDataBuffer();  // interrupt function
+    uint getMicrophoneRMS();
+
+    static short sampleBuffer[MICROPHONE_BUFFER_SIZE]; //must be public
+    static volatile int samplesRead;
+
+
 };
+
+/*
+// static members must be initialized externally the class definition
+short ScienceKitCarrier::sampleBuffer[MICROPHONE_BUFFER_SIZE];
+volatile int ScienceKitCarrier::samplesRead;
+*/
 
 
 

@@ -19,6 +19,10 @@
 
 #include "Arduino_ScienceKitCarrier.h"
 
+// static members must be initialized externally the class definition
+short ScienceKitCarrier::sampleBuffer[MICROPHONE_BUFFER_SIZE];
+volatile int ScienceKitCarrier::samplesRead;
+
 
 ScienceKitCarrier::ScienceKitCarrier(){
   round_robin_index=0;
@@ -77,7 +81,10 @@ ScienceKitCarrier::ScienceKitCarrier(){
   external_temperature=EXTERNAL_TEMPERATURE_DISABLED;
   external_temperature_is_connected=false;
 
-  round_robin_index = 0;
+  microphone_rms=0;
+  rms=0;
+
+  round_robin_index=0;
   
   thread_activity_led = new rtos::Thread();
   thread_update_bme = new rtos::Thread();
@@ -140,6 +147,10 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
     return ERR_BEGIN_ULTRASONIC;
   }
 
+  // let's start microphone (PDM on Arduino Nano RP2040 Connect)
+  if (beginMicrophone()!=0){
+    return ERR_BEGIN_MICROPHONE;
+  }
 
   // let's start bme688 and external ds18b20 probe
   startAuxiliaryThreads(auxiliary_threads);
@@ -154,6 +165,7 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
 /********************************************************************/
 
 void ScienceKitCarrier::update(const bool roundrobin){
+  updateMicrophone();                        // about 1ms when MICROPHONE_BUFFER_SIZE is 512
   if (!roundrobin){
     updateAnalogInput();
     updateAPDS();
@@ -608,6 +620,8 @@ void ScienceKitCarrier::setActivityLed(const int led_state){
   activity_led_state=led_state;
 }
 
+
+
 /********************************************************************/
 /*                  Function Generator Controller                   */
 /********************************************************************/
@@ -646,6 +660,8 @@ uint8_t ScienceKitCarrier::getRange2(){
   return range2;
 }
 
+
+
 /********************************************************************/
 /*                        Ultrasonic Sensor                         */
 /********************************************************************/
@@ -678,6 +694,8 @@ bool ScienceKitCarrier::getUltrasonicIsConnected(){
   return ultrasonic_is_connected;
 }
 
+
+
 /********************************************************************/
 /*                    External Temperature Probe                    */
 /********************************************************************/
@@ -691,13 +709,13 @@ int ScienceKitCarrier::beginExternalTemperature(){
 void ScienceKitCarrier::updateExternalTemperature(){
   float temperature;
   pinMode(OW_PIN,INPUT);
+  
   DSTherm drv(ow);
-
-  drv.convertTempAll(DSTherm::MAX_CONV_TIME, false);    
+  drv.convertTempAll(DSTherm::MAX_CONV_TIME, false);  
 
   static Placeholder<DSTherm::Scratchpad> scrpd;
-
   OneWireNg::ErrorCode ec = drv.readScratchpadSingle(scrpd);
+  
   if (ec == OneWireNg::EC_SUCCESS) {
     if (scrpd->getAddr()!=15){
       external_temperature_is_connected=false;
@@ -717,7 +735,6 @@ void ScienceKitCarrier::updateExternalTemperature(){
   }
 }
 
-
 float ScienceKitCarrier::getExternalTemperature(){
   return external_temperature;
 }
@@ -729,13 +746,49 @@ bool ScienceKitCarrier::getExternalTemperatureIsConnected(){
 void ScienceKitCarrier::threadExternalTemperature(){
   beginExternalTemperature();
   while(1){
-    //updateAnalogInput(UPDATE_INPUT_A);
     updateExternalTemperature();
     updateAnalogInput(UPDATE_INPUT_A);
     rtos::ThisThread::sleep_for(1000);
   }
 }
 
+
+
+/********************************************************************/
+/*                             Microphone                           */
+/********************************************************************/
+
+int ScienceKitCarrier::beginMicrophone(){
+  PDM.setGain(50);
+  PDM.onReceive(updateMicrophoneDataBuffer);
+  if(!PDM.begin(channels, frequency)){
+    return ERR_BEGIN_MICROPHONE;
+  }
+  return 0;
+}
+
+void ScienceKitCarrier::updateMicrophone(){
+  if (samplesRead) {
+    // Calculate the RMS of data buffer
+    rms=0;
+    for (int i=0; i<samplesRead; i++){
+      rms=rms+(sampleBuffer[i]*sampleBuffer[i]);
+    }
+    rms=rms/samplesRead;
+    microphone_rms=sqrt(rms);
+    samplesRead = 0;
+  }
+}
+
+void ScienceKitCarrier::updateMicrophoneDataBuffer(){
+  int bytesAvailable = PDM.available();
+  PDM.read(sampleBuffer, bytesAvailable);
+  samplesRead = bytesAvailable / 2;
+}
+
+uint ScienceKitCarrier::getMicrophoneRMS(){
+  return microphone_rms;
+}
 
 
 
