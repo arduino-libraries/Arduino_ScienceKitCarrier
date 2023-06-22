@@ -52,6 +52,11 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define OW_PIN digitalPinToPinName(INPUTA_PIN)
 #define EXTERNAL_TEMPERATURE_DISABLED -273.0; // absolute zero xD
 
+// Microphone - PDM on Arduino Nano RP2040 Connect
+#define MICROPHONE_BUFFER_SIZE 512
+#define MICROPHONE_CHANNELS 1
+#define MICROPHONE_FREQUENCY 16000
+
 
 // Errors
 #define ERR_BEGIN_APDS -3
@@ -62,6 +67,7 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define ERR_BEGIN_FUNCTION_GENERATOR_CONTROLLER -8
 #define ERR_BEGIN_ULTRASONIC -9
 #define ERR_BEGIN_EXTERNAL_TEMPERATURE -10
+#define ERR_BEGIN_MICROPHONE -11
 
 
 
@@ -79,6 +85,14 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define START_AUXILIARY_THREADS 1
 #define START_INTERNAL_AMBIENT_SENSOR 2     // bme688
 #define START_EXTERNAL_AMBIENT_SENSOR 3     // ds18b20
+
+
+
+
+
+// Servos
+#define SERVO_A_PIN 3
+#define SERVO_B_PIN 2
 
 
 

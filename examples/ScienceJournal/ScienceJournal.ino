@@ -19,21 +19,19 @@
 
 #include "ble_config.h"
 #include "Arduino_ScienceKitCarrier.h"
+
 String name;
 unsigned long lastNotify = 0;
-
 ScienceKitCarrier science_kit;
+rtos::Thread thread_update_sensors;
 
-rtos::Thread _thread_update_sensors;
-
-bool _is_connected = false;
+bool ble_is_connected = false;
 
 
-void setup() {
-
+void setup(){
   science_kit.begin(NO_AUXILIARY_THREADS); // Doesn't start the BME688 and external temperature threads for the moment
 
-  if (!BLE.begin()) {
+  if (!BLE.begin()){
     while(1);
   }
 
@@ -75,22 +73,21 @@ void setup() {
 
   science_kit.startAuxiliaryThreads(); // start the BME688 and External Temperature Probe threads
 
-  //_thread_check_connection.start(loop_data);
-  _thread_update_sensors.start(update); // this thread updates sensors
+  thread_update_sensors.start(update); // this thread updates sensors
 }
 
 
 void update(void){
   while(1){
     science_kit.update(ROUND_ROBIN_ENABLED);
-    rtos::ThisThread::sleep_for(20);
+    rtos::ThisThread::sleep_for(25);
   }
 }
 
 void loop(){
   BLEDevice central = BLE.central();
   if (central) {
-    _is_connected = true;
+    ble_is_connected = true;
     lastNotify=millis();
     while (central.connected()) {
       if (millis()-lastNotify>10){
@@ -101,24 +98,24 @@ void loop(){
   }
   else {
     delay(100);
-    _is_connected = false;
+    ble_is_connected = false;
   }
 }
 
-void updateSubscribedCharacteristics() {
-  if(currentCharacteristic.subscribed()) {
+void updateSubscribedCharacteristics(){
+  if(currentCharacteristic.subscribed()){
     currentCharacteristic.writeValue(science_kit.getCurrent());
   }
 
-  if(voltageCharacteristic.subscribed()) {
+  if(voltageCharacteristic.subscribed()){
     voltageCharacteristic.writeValue(science_kit.getVoltage());
   }
   
-  if(resistanceCharacteristic.subscribed()) {
+  if(resistanceCharacteristic.subscribed()){
     resistanceCharacteristic.writeValue(science_kit.getResistance());  
   }
   
-  if (lightCharacteristic.subscribed()) {
+  if (lightCharacteristic.subscribed()){
     long light[4];
     light[0] = science_kit.getRed();
     light[1] = science_kit.getGreen();
@@ -127,11 +124,19 @@ void updateSubscribedCharacteristics() {
     lightCharacteristic.writeValue((byte*)light, sizeof(light));
   }
 
-  if (proximityCharacteristic.subscribed()) {
+  if (proximityCharacteristic.subscribed()){                                                    // need to be fixed
+    /*
     proximityCharacteristic.writeValue(science_kit.getProximity());
+    */
+    if (science_kit.getUltrasonicIsConnected()){
+      proximityCharacteristic.writeValue(science_kit.getDistance()*100.0);
+    }
+    else{
+      proximityCharacteristic.writeValue(-1.0);
+    }
   }
   
-  if (accelerationCharacteristic.subscribed()) {
+  if (accelerationCharacteristic.subscribed()){
     float acceleration[3];
     acceleration[0] = science_kit.getAccelerationX();
     acceleration[1] = science_kit.getAccelerationY();
@@ -139,7 +144,7 @@ void updateSubscribedCharacteristics() {
     accelerationCharacteristic.writeValue((byte*)acceleration, sizeof(acceleration));
   }
 
-  if (gyroscopeCharacteristic.subscribed()) {
+  if (gyroscopeCharacteristic.subscribed()){
     float gyroscope[3];
     gyroscope[0] = science_kit.getAngularVelocityX();
     gyroscope[1] = science_kit.getAngularVelocityY();
@@ -147,7 +152,7 @@ void updateSubscribedCharacteristics() {
     gyroscopeCharacteristic.writeValue((byte*)gyroscope, sizeof(gyroscope));
   }
 
-  if (magnetometerCharacteristic.subscribed()) {
+  if (magnetometerCharacteristic.subscribed()){
     float magnetometer[3];
     magnetometer[0] = science_kit.getMagneticFieldX();
     magnetometer[1] = science_kit.getMagneticFieldY();
@@ -155,38 +160,56 @@ void updateSubscribedCharacteristics() {
     magnetometerCharacteristic.writeValue((byte*)magnetometer, sizeof(magnetometer));
   }
   
-  if(temperatureCharacteristic.subscribed()) {
+  if(temperatureCharacteristic.subscribed()){
     temperatureCharacteristic.writeValue(science_kit.getTemperature());
   }
   
-  if(pressureCharacteristic.subscribed()) {
+  if(pressureCharacteristic.subscribed()){
     pressureCharacteristic.writeValue(science_kit.getPressure());
   }
   
-  if(humidityCharacteristic.subscribed()) {
+  if(humidityCharacteristic.subscribed()){
     humidityCharacteristic.writeValue(science_kit.getHumidity());
   }
   
-  // need to be fix
-  if(sndIntensityCharacteristic.subscribed()) {
-    if (science_kit.getUltrasonicIsConnected()){
-      sndIntensityCharacteristic.writeValue(science_kit.getDistance()*100.0);
-    }
-    else{
-      sndIntensityCharacteristic.writeValue(-1.0);
-    }
+  // need to be fixed
+  if(sndIntensityCharacteristic.subscribed()){
+    sndIntensityCharacteristic.writeValue(science_kit.getMicrophoneRMS());
   }
 
-  // need to be fix
-  if(sndPitchCharacteristic.subscribed()) {
+  // need to be fixed
+  if(sndPitchCharacteristic.subscribed()){
     sndPitchCharacteristic.writeValue(science_kit.getExternalTemperature());
   }
 
   if (inputACharacteristic.subscribed()){
+    /*
     inputACharacteristic.writeValue(science_kit.getInputA());
+    */
+    inputACharacteristic.writeValue(science_kit.getFrequency1());
   }
 
   if (inputBCharacteristic.subscribed()){
     inputBCharacteristic.writeValue(science_kit.getInputB());
   }
 }
+
+
+
+
+
+/***
+ *                       _       _                                    
+ *         /\           | |     (_)                                   
+ *        /  \   _ __ __| |_   _ _ _ __   ___                         
+ *       / /\ \ | '__/ _` | | | | | '_ \ / _ \                        
+ *      / ____ \| | | (_| | |_| | | | | | (_) |                       
+ *     /_/____\_\_| _\__,_|\__,_|_|_| |_|\___/ ___ _     _____  ____  
+ *      / ____|    (_)                     | |/ (_) |   |  __ \|___ \ 
+ *     | (___   ___ _  ___ _ __   ___ ___  | ' / _| |_  | |__) | __) |
+ *      \___ \ / __| |/ _ \ '_ \ / __/ _ \ |  < | | __| |  _  / |__ < 
+ *      ____) | (__| |  __/ | | | (_|  __/ | . \| | |_  | | \ \ ___) |
+ *     |_____/ \___|_|\___|_| |_|\___\___| |_|\_\_|\__| |_|  \_\____/ 
+ *                                                                    
+ *                                                                    
+ */
