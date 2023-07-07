@@ -50,7 +50,7 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 
 // External temperature connected on input A
 #define OW_PIN digitalPinToPinName(INPUTA_PIN)
-#define EXTERNAL_TEMPERATURE_DISABLED -273.0; // absolute zero xD
+#define EXTERNAL_TEMPERATURE_DISABLED -273.15; // absolute zero xD
 
 // Microphone - PDM on Arduino Nano RP2040 Connect
 #define MICROPHONE_BUFFER_SIZE 512
