@@ -23,6 +23,8 @@
 #include "led_range.h"
 #include "analogWave.h"
 
+#define ANRES 9
+
 #define RES 100
 
 // Firmware version
@@ -122,6 +124,10 @@ void setup() {
   wave1.sync(wave2);
   rephase=0;
   time_rephase=millis();
+
+  /* 20230707 keep resolution to 0-511 also if core now is correct
+    and goes from 1-1023  */
+  analogReadResolution(ANRES);
 }
 
 
