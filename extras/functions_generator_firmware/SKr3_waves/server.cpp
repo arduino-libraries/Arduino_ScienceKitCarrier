@@ -195,17 +195,19 @@ namespace SudoMaker::chAT {
 		}
 
 		void write_str(std::string str) {
-			write_raw(data_holder{
-				.position = 0,
-				.holder = std::move(str),
-			});
+			data_holder dh;
+			dh.position = 0;
+			dh.holder = std::move(str);
+
+			write_raw(dh);
 		}
 
 		void write_vec8(std::vector<uint8_t> vec8) {
-			write_raw(data_holder{
-				.position = 0,
-				.holder = std::move(vec8),
-			});
+			data_holder dh;
+			dh.position = 0;
+			dh.holder = std::move(vec8);
+
+			write_raw(dh);
 		}
 
 		void write_error() {

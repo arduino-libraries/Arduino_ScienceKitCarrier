@@ -23,9 +23,64 @@
 #include "led_range.h"
 #include "analogWave.h"
 
-#define ANRES 9
+/* __________________________ CONFIGURATION DEFINES _________________________ */
+// #define USE_FIZ
+// #define USE_TIME
+#define USE_DEBUG_CODE 
 
-#define RES 100
+
+/* _____________________________ OTHERS DEFINES _____________________________ */
+
+#define ANRES        9
+#define RES          100
+#define SERIAL_AT    Serial
+
+/* ________TIMER_____________________________________________________________ */
+
+#ifdef USE_TIMER
+#include "FspTimer.h"
+
+static FspTimer timer;
+
+/* -------------------------------------------------------------------------- */ 
+void timer_callback(timer_callback_args_t *arg) {
+/* -------------------------------------------------------------------------- */  
+  Serial.println("Timer 1 callback");
+}
+
+/* -------------------------------------------------------------------------- */ 
+void set_up_timer() {
+/* -------------------------------------------------------------------------- */   
+  
+   uint8_t type;
+   int8_t  num  = FspTimer::get_available_timer(type);
+  
+
+   if(num >= 0) {
+      Serial.print("Timer Available ");
+      Serial.println(type);
+      timer.begin(TIMER_MODE_PERIODIC, type, num, 1,50 , timer_callback);
+      timer.setup_overflow_irq();
+      if(timer.open()) {
+         Serial.println("FspTimer opened");
+      }
+      if(timer.start()) {
+         Serial.println("FspTimer started");
+      } 
+   }
+}
+
+
+#endif
+
+/* ________CHAT AT___________________________________________________________ */
+
+#ifdef USE_CHAT_AT
+#include "chATWrapper.h"
+static CAtWrapper at(&SERIAL_AT);
+
+#endif
+
 
 // Firmware version
 uint8_t version[2]={0,6};
@@ -104,8 +159,22 @@ void comm_request(){
 }
 
 
+
+
 void setup() {
   Serial.begin(115200);
+
+  #ifdef USE_DEBUG_CODE
+  delay(3000);
+  Serial.println("STARTED SETUP");
+  #endif
+
+  #ifdef USE_TIMER
+  set_up_timer();
+  #endif
+
+  
+  
   generate_wave();
   pinMode(PH_1,INPUT);
   pinMode(PH_2,INPUT);
@@ -125,63 +194,72 @@ void setup() {
   rephase=0;
   time_rephase=millis();
 
-  /* 20230707 keep resolution to 0-511 also if core now is correct
+   
+   #ifdef USE_ADC_FIX_IN_SCIENCE_KIT_REV_3_0
+   /* 20230707 keep resolution to 0-511 also if core now is correct
     and goes from 1-1023  */
-  analogReadResolution(ANRES);
+   analogReadResolution(ANRES);
+   #endif
 }
 
 
 
 void loop() {
-  frequency_1.refresh();
-  frequency_2.refresh();
-  range.update();
+   #ifdef USE_DEBUG_CODE
+   //Serial.println("Msin loop running");
+   #endif
+   
 
-  freq1=frequency_1.getGaugeValue()*range.getRange1();
-  freq2=frequency_2.getGaugeValue()*range.getRange2();
+   frequency_1.refresh();
+   frequency_2.refresh();
+   range.update();
 
-  phase1=analogRead(PH_1)/step;
-  if (phase1>(RES+10)){
-    phase1=0;
-  }
+   freq1=frequency_1.getGaugeValue()*range.getRange1();
+   freq2=frequency_2.getGaugeValue()*range.getRange2();
 
-  phase2=analogRead(PH_2)/step;
-  if (phase2>RES){
-    phase2=0;
-  }
+   phase1=analogRead(PH_1)/step;
+   if (phase1>(RES+10)){
+      phase1=0;
+   }
 
-  if (freq1!=previous_frequency_1){
-    wave1.freq(freq1);
-    previous_frequency_1=freq1;
-    wave1.sync(wave2);
-  }
+   phase2=analogRead(PH_2)/step;
+   if (phase2>RES){
+      phase2=0;
+   }
 
-  if (freq2!=previous_frequency_2){
-    wave2.freq(freq2);
-    previous_frequency_2=freq2;
-    wave2.sync(wave1);
-  }
+   if (freq1!=previous_frequency_1){
+      wave1.freq(freq1);
+      previous_frequency_1=freq1;
+      wave1.sync(wave2);
+   }
 
-  if (millis()-time_rephase>500){
-    if (phase1!=previous_phase_1){
-      wave1.offset(phase1/2);
-      previous_phase_1=phase1;
-      if (phase2==0){
-        wave1.sync(wave2);
+   if (freq2!=previous_frequency_2){
+      wave2.freq(freq2);
+      previous_frequency_2=freq2;
+      wave2.sync(wave1);
+   }
+
+   if (millis()-time_rephase>500){
+      if (phase1!=previous_phase_1){
+         wave1.offset(phase1/2);
+         previous_phase_1=phase1;
+         if (phase2==0){
+            wave1.sync(wave2);
+         }
       }
-    }
-    if (phase2!=previous_phase_2){
-      wave2.offset(phase2/2);
-      previous_phase_2=phase2;
-      if (phase1==0){
-        wave2.sync(wave1);
+      if (phase2!=previous_phase_2){
+         wave2.offset(phase2/2);
+         previous_phase_2=phase2;
+         if (phase1==0){
+            wave2.sync(wave1);
+         }
       }
-    }
-    time_rephase=millis();
-  }
+      time_rephase=millis();
+   }
 
+   #ifdef USE_CHAT_AT
+   at.run();
+   #endif
 
-
-
-  delay(1);
+   delay(1);
 }
