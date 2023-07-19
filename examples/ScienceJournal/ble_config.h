@@ -22,26 +22,127 @@
 
 #include <ArduinoBLE.h>
 
-const int VERSION = 0x00000001;
+const int VERSION = 0x00000002;
+
+#define BLE_CH_SERVICE               "0000"
+#define BLE_CH_VERSION               "0001"
+
+#define BLE_CH_CURRENT               "1001"
+#define BLE_CH_VOLTAGE               "1002"
+#define BLE_CH_RESISTA               "1003"
+#define BLE_CH___LIGHT               "1004"
+#define BLE_CH_PROXIMI               "1005"
+#define BLE_CH_ACCELER               "1006"
+#define BLE_CH_GYROSCO               "1007"
+#define BLE_CH_MAGNETO               "1008"
+#define BLE_CH_TEMPERA               "1009"
+#define BLE_CH_PRESSUR               "1010"
+#define BLE_CH_HUMIDIT               "1011"
+#define BLE_CH_SOUNDIN               "1012"
+#define BLE_CH_SOUNDPI               "1013"
+#define BLE_CH_FUNGEN1               "1014"
+#define BLE_CH_DISTANC               "1015"
+#define BLE_CH_INPUT_A               "1016"
+#define BLE_CH_INPUT_B               "1017"
+#define BLE_CH_AIR_QUA               "1018"
+#define BLE_CH_EXTTEMP               "1019"
+#define BLE_CH____PING               "1020"
+#define BLE_CH_FUNGEN2               "1021"
+
 
 #define SCIENCE_KIT_UUID(val) ("555a0003-" val "-467a-9538-01f0652c74e8")
-BLEService                     service                    (SCIENCE_KIT_UUID("0000"));
-BLEUnsignedIntCharacteristic   versionCharacteristic      (SCIENCE_KIT_UUID("0001"), BLERead);
-BLEFloatCharacteristic         currentCharacteristic      (SCIENCE_KIT_UUID("1001"), BLENotify);
-BLEFloatCharacteristic         voltageCharacteristic      (SCIENCE_KIT_UUID("1002"), BLENotify);
-BLEFloatCharacteristic         resistanceCharacteristic   (SCIENCE_KIT_UUID("1003"), BLENotify);
-BLECharacteristic              lightCharacteristic        (SCIENCE_KIT_UUID("1004"), BLENotify, 4 * sizeof(long));
-BLEUnsignedIntCharacteristic   proximityCharacteristic    (SCIENCE_KIT_UUID("1005"), BLENotify);
-BLECharacteristic              accelerationCharacteristic (SCIENCE_KIT_UUID("1006"), BLENotify, 3 * sizeof(float));
-BLECharacteristic              gyroscopeCharacteristic    (SCIENCE_KIT_UUID("1007"), BLENotify, 3 * sizeof(float));
-BLECharacteristic              magnetometerCharacteristic (SCIENCE_KIT_UUID("1008"), BLENotify, 3 * sizeof(float));
-BLEFloatCharacteristic         temperatureCharacteristic  (SCIENCE_KIT_UUID("1009"), BLENotify);
-BLEFloatCharacteristic         pressureCharacteristic     (SCIENCE_KIT_UUID("1010"), BLENotify);
-BLEFloatCharacteristic         humidityCharacteristic     (SCIENCE_KIT_UUID("1011"), BLENotify);
-BLEUnsignedIntCharacteristic   sndIntensityCharacteristic (SCIENCE_KIT_UUID("1012"), BLENotify);
-BLEUnsignedIntCharacteristic   sndPitchCharacteristic     (SCIENCE_KIT_UUID("1013"), BLENotify);
-BLEUnsignedIntCharacteristic   inputACharacteristic     (SCIENCE_KIT_UUID("1016"), BLENotify);
-BLEUnsignedIntCharacteristic   inputBCharacteristic     (SCIENCE_KIT_UUID("1017"), BLENotify);
+
+/* 
+ * SERVICE, VERSION 
+ */
+
+/* __________________________________________________________________SERVICE  */
+BLEService                     service                    (SCIENCE_KIT_UUID(BLE_CH_SERVICE));
+/* __________________________________________________________________VERSION  */
+BLEUnsignedIntCharacteristic   versionCharacteristic      (SCIENCE_KIT_UUID(BLE_CH_VERSION), BLERead);
+
+/* 
+ * CURRENT, VOLTAGE, RESISTANCE 
+ */
+
+/* __________________________________________________________________CURRENT  */
+BLEFloatCharacteristic         currentCharacteristic      (SCIENCE_KIT_UUID(BLE_CH_CURRENT), BLENotify);
+/* __________________________________________________________________VOLTAGE  */
+BLEFloatCharacteristic         voltageCharacteristic      (SCIENCE_KIT_UUID(BLE_CH_VOLTAGE), BLENotify);
+/* ________________________________________________________________RESISTANCE */
+BLEFloatCharacteristic         resistanceCharacteristic   (SCIENCE_KIT_UUID(BLE_CH_RESISTA), BLENotify);
+/* ___________________________________________________________________LIGHT   */
+BLECharacteristic              lightCharacteristic        (SCIENCE_KIT_UUID(BLE_CH___LIGHT), BLENotify, 4 * sizeof(long));
+/* _________________________________________________________________PROXIMITY */
+BLEUnsignedIntCharacteristic   proximityCharacteristic    (SCIENCE_KIT_UUID(BLE_CH_PROXIMI), BLENotify);
+
+/* 
+ * BMI270 & BMM150, 9dof imu, acceleration, gyroscope and magnetometer 
+ */
+
+/* ______________________________________________________________ACCELERATION */
+BLECharacteristic              accelerationCharacteristic (SCIENCE_KIT_UUID(BLE_CH_ACCELER), BLENotify, 3 * sizeof(float));
+/* _________________________________________________________________GYROSCOPE */
+BLECharacteristic              gyroscopeCharacteristic    (SCIENCE_KIT_UUID(BLE_CH_GYROSCO), BLENotify, 3 * sizeof(float));
+/* ______________________________________________________________MAGNETOMETER */
+BLECharacteristic              magnetometerCharacteristic (SCIENCE_KIT_UUID(BLE_CH_MAGNETO), BLENotify, 3 * sizeof(float));
+
+/* 
+ * BME688 
+ */
+
+/* _______________________________________________________________TEMPERATURE */
+BLEFloatCharacteristic         temperatureCharacteristic  (SCIENCE_KIT_UUID(BLE_CH_TEMPERA), BLENotify);
+/* __________________________________________________________________PRESSURE */
+BLEFloatCharacteristic         pressureCharacteristic     (SCIENCE_KIT_UUID(BLE_CH_PRESSUR), BLENotify);
+/* __________________________________________________________________HUMIDITY */
+BLEFloatCharacteristic         humidityCharacteristic     (SCIENCE_KIT_UUID(BLE_CH_HUMIDIT), BLENotify);
+/* _______________________________________________________________AIR_QUALITY */
+BLEFloatCharacteristic         airQualityCharacteristic   (SCIENCE_KIT_UUID(BLE_CH_AIR_QUA), BLENotify); // ***
+
+/*
+ * MICROPHONE
+ */
+
+/* ___________________________________________________________SOUND_INTENSITY */
+BLEUnsignedIntCharacteristic   sndIntensityCharacteristic (SCIENCE_KIT_UUID(BLE_CH_SOUNDIN), BLENotify); // *** !
+/* ______!!! NOT AVAILABLE (should be delete?) !!!________________SOUND_PITCH */
+BLEUnsignedIntCharacteristic   sndPitchCharacteristic     (SCIENCE_KIT_UUID(BLE_CH_SOUNDPI), BLENotify);
+
+/*
+ * INPUT A,B
+ */
+
+/* ___________________________________________________________________INPUT_A */
+BLEUnsignedIntCharacteristic   inputACharacteristic       (SCIENCE_KIT_UUID(BLE_CH_INPUT_A), BLENotify);
+/* ___________________________________________________________________INPUT_B */
+BLEUnsignedIntCharacteristic   inputBCharacteristic       (SCIENCE_KIT_UUID(BLE_CH_INPUT_B), BLENotify);
+
+/*
+ * EXTERNAL TEMPERATURE
+ */
+
+/* ______________________________________________________EXTERNAL_TEMPERATURE */
+BLEFloatCharacteristic         extTempCharacteristic      (SCIENCE_KIT_UUID(BLE_CH_EXTTEMP), BLENotify); // ***
+
+/*
+ * FUNCTION GENERATOR 1,2
+ */
+
+/* ______________________________________________________FUNCTION_GENERATOR_1 */
+BLECharacteristic              funcGenOneCharacteristic   (SCIENCE_KIT_UUID(BLE_CH_FUNGEN1), BLENotify, 2 * sizeof(long));
+/* ______________________________________________________FUNCTION_GENERATOR_2 */
+BLECharacteristic              funcGenTwoCharacteristic   (SCIENCE_KIT_UUID(BLE_CH_FUNGEN2), BLENotify, 2 * sizeof(long));
+
+/*
+ * DISTANCE, PING
+ */
+
+/* __________________________________________________________________DISTANCE */
+BLEFloatCharacteristic         distanceCharacteristic     (SCIENCE_KIT_UUID(BLE_CH_DISTANC), BLENotify); // ***
+/* ______________________________________________________________________PING */
+BLEFloatCharacteristic         pingCharacteristic         (SCIENCE_KIT_UUID(BLE_CH____PING), BLENotify); // ***
+
 
 #endif
 
