@@ -22,10 +22,12 @@
 #include "led_gauge.h"
 #include "led_range.h"
 #include "analogWave.h"
+#include "scheduler.h"
+
 
 /* __________________________ CONFIGURATION DEFINES _________________________ */
-// #define USE_FIZ
-// #define USE_TIME
+#define USE_CHAT_AT
+#define USE_TIMER
 #define USE_DEBUG_CODE 
 
 
@@ -39,13 +41,15 @@
 
 #ifdef USE_TIMER
 #include "FspTimer.h"
+#include "scheduler.h"
 
 static FspTimer timer;
+static bool elapsed = false;
 
 /* -------------------------------------------------------------------------- */ 
 void timer_callback(timer_callback_args_t *arg) {
 /* -------------------------------------------------------------------------- */  
-  Serial.println("Timer 1 callback");
+  elapsed = true;
 }
 
 /* -------------------------------------------------------------------------- */ 
@@ -70,6 +74,15 @@ void set_up_timer() {
    }
 }
 
+/* -------------------------------------------------------------------------- */ 
+bool is_tick_elapsed() {
+/* -------------------------------------------------------------------------- */    
+   if(elapsed) {
+      elapsed = false;
+      return true;
+   }
+   return false;
+}
 
 #endif
 
@@ -158,10 +171,11 @@ void comm_request(){
   }
 }
 
+/* ______________________________SETUP_______________________________________ */
 
-
-
+/* -------------------------------------------------------------------------- */
 void setup() {
+/* -------------------------------------------------------------------------- */   
   Serial.begin(115200);
 
   #ifdef USE_DEBUG_CODE
@@ -203,8 +217,12 @@ void setup() {
 }
 
 
+/* _______________________________LOOP_______________________________________ */
 
+
+/* -------------------------------------------------------------------------- */
 void loop() {
+/* -------------------------------------------------------------------------- */   
    #ifdef USE_DEBUG_CODE
    //Serial.println("Msin loop running");
    #endif
