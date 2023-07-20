@@ -1,5 +1,7 @@
 #include "scheduler.h"
 
+#include "Arduino.h"
+
 extern bool is_tick_elapsed();
 
 CScheduler& CScheduler::getInstance() {
@@ -52,9 +54,9 @@ void CScheduler::add(Task_f func, TaskNum_t tsk) {
 
 #if(USE_TASK_15ms == 1)
    case TASK_15ms:
-      TaskList[TASK_10ms].task = func;
-      TaskList[TASK_10ms].time = 13;
-      TaskList[TASK_10ms].restart_time = 15;
+      TaskList[TASK_15ms].task = func;
+      TaskList[TASK_15ms].time = 13;
+      TaskList[TASK_15ms].restart_time = 15;
    break;
 #endif
 
@@ -110,19 +112,18 @@ void CScheduler::add(Task_f func, TaskNum_t tsk) {
    }   
 }
 
-void CScheduler::shedule() {
+void CScheduler::run() {
    unsigned char i = 0;
    unsigned char oneTaskExecuted = 0;
 
    if(is_tick_elapsed()) {
       for(i = 0; i < TASK_DEFINED_TASK; i++) {
-
          if(TaskList[i].task != nullptr) {
-
+            
             if(TaskList[i].time > 0) {
                TaskList[i].time--;
             }
-
+            
             if(oneTaskExecuted == 0 && TaskList[i].time == 0) {
                TaskList[i].task();
                TaskList[i].time = TaskList[i].restart_time;

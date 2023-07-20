@@ -23,7 +23,7 @@
 #include "Arduino.h"
 #include "led_matrix.h"
 
-class LedRange:LedMatrix{
+class LedRange: public LedMatrix{
   private:
     uint8_t button;
     int value;

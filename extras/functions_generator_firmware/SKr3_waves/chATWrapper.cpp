@@ -1,5 +1,7 @@
 #include "chATWrapper.h"
 #include "chAt_cmds.h"
+#include "pin_def.h"
+
 
 
 
@@ -12,7 +14,7 @@ int CAtWrapper::run() {
 
 
 /* -------------------------------------------------------------------------- */
-CAtWrapper::CAtWrapper(arduino::HardwareSerial *s) : mode(0) {
+CAtWrapper::CAtWrapper(arduino::HardwareSerial *s) {
 /* -------------------------------------------------------------------------- */   
    /* set up serial */
    serial = s;

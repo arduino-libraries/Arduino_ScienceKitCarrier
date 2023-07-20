@@ -3,6 +3,10 @@
 
 extern bool is_tick_elapsed();
 
+#define USE_TASK_10ms     1
+#define USE_TASK_15ms     1
+#define USE_TASK_20ms     1
+#define USE_TASK_500ms    1 
 
 typedef enum {
 #if(USE_TASK_2ms == 1)
@@ -57,7 +61,7 @@ public:
    ~CScheduler();
    
    void add(Task_f func, TaskNum_t tsk);
-   void shedule();
+   void run();
    
 
 private:

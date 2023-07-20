@@ -7,15 +7,11 @@
 #define _PRODUCTION_CODE_MODE       "583279539534"
  
 #define _ENTER_PRODUCTION_MODE      "+PRODMODE"
-#define _FREQ_1_LED_SET             "+LED1SET"
-#define _FREQ_1_LED_RESET           "+LED1RESET"
-#define _FREQ_2_LED_SET             "+LED2SET"
-#define _FREQ_2_LED_RESET           "+LED2RESET"
-#define _RANGE_1_LED_SET            "+RLED1SET"
-#define _RANGE_1_LED_RESET          "+RLED1RESET"
-#define _RANGE_2_LED_SET            "+RLED2SET"  
-#define _RANGE_2_LED_RESET          "+RLED2RESET"  
-
-
-
+#define _READ_POTENTIOMETER         "+READPOT"     //Arguments F1, P1, F2, P2
+#define _LED_CMD                    "+LEDCMD"      //Arguments ON, OFF
+#define _SET_FREQ_1                 "+SETFREQ1"    //Argument Hz
+#define _SET_FREQ_2                 "+SETFREQ2"    //Argument Hz
+#define _SET_AMPLITUDE_1            "+SETAMPL1"     //Argument AMP
+#define _SET_AMPLITUDE_2            "+SETAMPL2"     //Argument AMP
+ 
 #endif 

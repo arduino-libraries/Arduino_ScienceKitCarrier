@@ -24,75 +24,24 @@
 #include "analogWave.h"
 #include "scheduler.h"
 
-
+/* ########################################################################## */
 /* __________________________ CONFIGURATION DEFINES _________________________ */
+/* ########################################################################## */
 #define USE_CHAT_AT
 #define USE_TIMER
 #define USE_DEBUG_CODE 
 
-
+/* ########################################################################## */
 /* _____________________________ OTHERS DEFINES _____________________________ */
-
+/* ########################################################################## */
 #define ANRES        9
 #define RES          100
 #define SERIAL_AT    Serial
 
-/* ________TIMER_____________________________________________________________ */
+/* ########################################################################## */
+/* ____________________________GLOBAL VARIABLES _____________________________ */
+/* ########################################################################## */
 
-#ifdef USE_TIMER
-#include "FspTimer.h"
-#include "scheduler.h"
-
-static FspTimer timer;
-static bool elapsed = false;
-
-/* -------------------------------------------------------------------------- */ 
-void timer_callback(timer_callback_args_t *arg) {
-/* -------------------------------------------------------------------------- */  
-  elapsed = true;
-}
-
-/* -------------------------------------------------------------------------- */ 
-void set_up_timer() {
-/* -------------------------------------------------------------------------- */   
-  
-   uint8_t type;
-   int8_t  num  = FspTimer::get_available_timer(type);
-  
-
-   if(num >= 0) {
-      Serial.print("Timer Available ");
-      Serial.println(type);
-      timer.begin(TIMER_MODE_PERIODIC, type, num, 1,50 , timer_callback);
-      timer.setup_overflow_irq();
-      if(timer.open()) {
-         Serial.println("FspTimer opened");
-      }
-      if(timer.start()) {
-         Serial.println("FspTimer started");
-      } 
-   }
-}
-
-/* -------------------------------------------------------------------------- */ 
-bool is_tick_elapsed() {
-/* -------------------------------------------------------------------------- */    
-   if(elapsed) {
-      elapsed = false;
-      return true;
-   }
-   return false;
-}
-
-#endif
-
-/* ________CHAT AT___________________________________________________________ */
-
-#ifdef USE_CHAT_AT
-#include "chATWrapper.h"
-static CAtWrapper at(&SERIAL_AT);
-
-#endif
 
 
 // Firmware version
@@ -129,6 +78,145 @@ bool test_flag = false;
 unsigned long time_rephase;
 int rephase;
 
+/* ########################################################################## */
+/* ________CHAT AT___________________________________________________________ */
+/* ########################################################################## */
+
+#ifdef USE_CHAT_AT
+
+#include "chATWrapper.h"
+static CAtWrapper at(&SERIAL_AT);
+
+
+#endif //USE_CHAT_AT
+
+/* ########################################################################## */
+/* ________TIMER_____________________________________________________________ */
+/* ########################################################################## */
+
+#ifdef USE_TIMER
+#include "FspTimer.h"
+#include "scheduler.h"
+
+static FspTimer timer;
+static bool elapsed = false;
+
+/* -------------------------------------------------------------------------- */ 
+void task10ms() {
+/* -------------------------------------------------------------------------- */    
+   frequency_1.refresh();
+   frequency_2.refresh();
+   range.update();
+
+   freq1=frequency_1.getGaugeValue()*range.getRange1();
+   freq2=frequency_2.getGaugeValue()*range.getRange2();  
+}
+
+/* -------------------------------------------------------------------------- */ 
+void task15ms() {
+/* -------------------------------------------------------------------------- */    
+   phase1=analogRead(PH_1)/step;
+   if (phase1>(RES+10)){
+      phase1=0;
+   }
+
+   phase2=analogRead(PH_2)/step;
+   if (phase2>RES){
+      phase2=0;
+   }
+
+   if (freq1!=previous_frequency_1){
+      wave1.freq(freq1);
+      previous_frequency_1=freq1;
+      wave1.sync(wave2);
+   }
+
+   if (freq2!=previous_frequency_2){
+      wave2.freq(freq2);
+      previous_frequency_2=freq2;
+      wave2.sync(wave1);
+   }
+}
+
+/* -------------------------------------------------------------------------- */ 
+void task20ms() {
+/* -------------------------------------------------------------------------- */    
+   #ifdef USE_CHAT_AT
+   at.run();
+   #endif 
+}
+
+
+/* -------------------------------------------------------------------------- */ 
+void task500ms() {
+/* -------------------------------------------------------------------------- */
+   if (phase1!=previous_phase_1){
+      wave1.offset(phase1/2);
+      previous_phase_1=phase1;
+      if (phase2==0){
+         wave1.sync(wave2);
+      }
+   }
+   if (phase2!=previous_phase_2){
+      wave2.offset(phase2/2);
+      previous_phase_2=phase2;
+      if (phase1==0){
+         wave2.sync(wave1);
+      }
+   }
+}
+
+
+
+
+
+/* -------------------------------------------------------------------------- */ 
+void timer_callback(timer_callback_args_t *arg) {
+/* -------------------------------------------------------------------------- */  
+  elapsed = true;
+}
+
+/* -------------------------------------------------------------------------- */ 
+void set_up_timer() {
+/* -------------------------------------------------------------------------- */   
+  
+   uint8_t type;
+   int8_t  num  = FspTimer::get_available_timer(type);
+  
+
+   if(num >= 0) {
+      Serial.print("Timer Available ");
+      Serial.println(type);
+      timer.begin(TIMER_MODE_PERIODIC, type, num, 1000,50 , timer_callback);
+      timer.setup_overflow_irq();
+      if(timer.open()) {
+         Serial.println("FspTimer opened");
+      }
+      if(timer.start()) {
+         Serial.println("FspTimer started");
+      } 
+   }
+
+   CScheduler::getInstance().add(task10ms,TASK_10ms);
+   CScheduler::getInstance().add(task15ms,TASK_15ms);
+   CScheduler::getInstance().add(task20ms,TASK_20ms);
+   CScheduler::getInstance().add(task500ms,TASK_500ms);
+
+}
+
+/* -------------------------------------------------------------------------- */ 
+bool is_tick_elapsed() {
+/* -------------------------------------------------------------------------- */    
+   if(elapsed) {
+      elapsed = false;
+      return true;
+   }
+   return false;
+}
+
+
+
+#endif //USE_TIMER
 
 
 // This function loads an wave array with a sinewave using RES samples.
@@ -216,6 +304,59 @@ void setup() {
    #endif
 }
 
+/* -------------------------------------------------------------------------- */
+void all_led_on() {
+/* -------------------------------------------------------------------------- */  
+   
+   for(int i = 0; i < 6;i++) {
+      range.set(i);
+   }
+
+   for(int i = 0; i < 18; i++) {
+      if(i < 9) {
+         frequency_1.set(i);
+      }
+      else if(i < 18) {
+         frequency_2.set(i - 9);
+      }
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+void led_f1() {
+/* -------------------------------------------------------------------------- */  
+   range.set(1,1,1,0,0);
+   frequency_2.set(1,1,1,0,0,0);
+   for(int i = 0; i < 9; i++) {
+       frequency_1.set(i);
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+void led_f2() {
+/* -------------------------------------------------------------------------- */  
+   range.set(1,1,1,0,0);
+   frequency_1.set(1,1,1,0,0,0);
+   for(int i = 0; i < 9; i++) {
+       frequency_2.set(i);
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+void led_r() {
+/* -------------------------------------------------------------------------- */  
+   frequency_1.set(1,1,1,0,0,0);
+   frequency_2.set(1,1,1,0,0,0);
+   for(int i = 0; i < 6; i++) {
+       range.set(i);
+   }
+}
+
+
+
+
+
+
 
 /* _______________________________LOOP_______________________________________ */
 
@@ -226,6 +367,50 @@ void loop() {
    #ifdef USE_DEBUG_CODE
    //Serial.println("Msin loop running");
    #endif
+  
+
+   #ifdef USE_TIMER
+   AppSt_t st = at.getStatus();  
+   
+   if(st == APP_NORMAL) {
+      CScheduler::getInstance().run();
+   }
+   else {
+      if(st == APP_DIAGNOSTIC_LED_ON) {
+        all_led_on();
+      }
+      else if(st == APP_DIAGNOSTIC_LED_ON_F1) {
+        led_f1();
+      }
+      else if(st == APP_DIAGNOSTIC_LED_ON_F2) {
+        led_f2();
+      }
+      else if(st == APP_DIAGNOSTIC_LED_ON_R) {
+        led_r();
+      }
+      float f1 = at.getF1();
+      if(f1 != 0.0) {
+        wave1.freq(f1);
+        at.resetF1();
+      }
+      float f2 = at.getF2();
+      if(f2 != 0.0) {
+        wave2.freq(f2);
+        at.resetF2();
+      }
+      float a1 = at.getA1();
+      if(a1 > 0.0) {
+        wave1.amplitude(a1);
+        at.resetA1();
+      }
+      float a2 = at.getA2();
+      if(a2 > 0.0) {
+        wave2.amplitude(a2);
+        at.resetA2();
+      }
+      at.run();
+   }
+   #else
    
 
    frequency_1.refresh();
@@ -275,9 +460,10 @@ void loop() {
       time_rephase=millis();
    }
 
-   #ifdef USE_CHAT_AT
-   at.run();
+   delay(1);
    #endif
 
-   delay(1);
+   
+
+   
 }
