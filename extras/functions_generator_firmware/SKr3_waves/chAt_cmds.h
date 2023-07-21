@@ -6,7 +6,7 @@
 #include "pin_def.h"
 #include "led_gauge.h"
 #include "led_array.h"
-#include <string>
+
 
 using namespace std;
 
@@ -72,15 +72,7 @@ void CAtWrapper::add_cmds() {
               v = 0;
            }
            v = map(v, 0,ADC_RES, 0, 10);
-           //Serial.println(v);
-           
-           string val = std::to_string(v);
-
-           //Serial.println(val.c_str());
-           //Serial.println("-----");
-           delay(1);
-           
-           srv.write_str((const char *)(val.c_str()));
+           Serial.print(v);
            srv.write_line_end();   
            return chAT::CommandStatus::OK;
          }

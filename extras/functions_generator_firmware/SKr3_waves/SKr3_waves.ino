@@ -29,7 +29,7 @@
 /* ########################################################################## */
 #define USE_CHAT_AT
 #define USE_TIMER
-#define USE_DEBUG_CODE 
+//#define USE_DEBUG_CODE 
 
 /* ########################################################################## */
 /* _____________________________ OTHERS DEFINES _____________________________ */
@@ -45,7 +45,7 @@
 
 
 // Firmware version
-uint8_t version[2]={0,6};
+uint8_t version[2]={0,7};
 
 char command=0;
 byte data[6];
@@ -179,22 +179,13 @@ void timer_callback(timer_callback_args_t *arg) {
 /* -------------------------------------------------------------------------- */ 
 void set_up_timer() {
 /* -------------------------------------------------------------------------- */   
-  
    uint8_t type;
    int8_t  num  = FspTimer::get_available_timer(type);
-  
-
    if(num >= 0) {
-      Serial.print("Timer Available ");
-      Serial.println(type);
       timer.begin(TIMER_MODE_PERIODIC, type, num, 1000,50 , timer_callback);
       timer.setup_overflow_irq();
-      if(timer.open()) {
-         Serial.println("FspTimer opened");
-      }
-      if(timer.start()) {
-         Serial.println("FspTimer started");
-      } 
+      timer.open();
+      timer.start(); 
    }
 
    CScheduler::getInstance().add(task10ms,TASK_10ms);
@@ -274,8 +265,6 @@ void setup() {
   #ifdef USE_TIMER
   set_up_timer();
   #endif
-
-  
   
   generate_wave();
   pinMode(PH_1,INPUT);
