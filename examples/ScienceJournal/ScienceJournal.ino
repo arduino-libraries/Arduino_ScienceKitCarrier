@@ -47,25 +47,56 @@ void setup(){
 
   BLE.setLocalName(name.c_str());
   BLE.setDeviceName(name.c_str());
+
+
   BLE.setAdvertisedService(service);
-
+  /* ________________________________________________________________VERSION  */
   service.addCharacteristic(versionCharacteristic);
+  /* ________________________________________________________________CURRENT  */
   service.addCharacteristic(currentCharacteristic);
+  /* ________________________________________________________________VOLTAGE  */
   service.addCharacteristic(voltageCharacteristic);
+  /* ______________________________________________________________RESISTANCE */
   service.addCharacteristic(resistanceCharacteristic);
+  /* _________________________________________________________________LIGHT   */
   service.addCharacteristic(lightCharacteristic);
+  /* _______________________________________________________________PROXIMITY */
   service.addCharacteristic(proximityCharacteristic);
+  /* ____________________________________________________________ACCELERATION */
   service.addCharacteristic(accelerationCharacteristic);
+  /* _______________________________________________________________GYROSCOPE */
   service.addCharacteristic(gyroscopeCharacteristic);
+  /* ____________________________________________________________MAGNETOMETER */
   service.addCharacteristic(magnetometerCharacteristic);
+  /* _____________________________________________________________TEMPERATURE */
   service.addCharacteristic(temperatureCharacteristic);
+  /* ________________________________________________________________PRESSURE */
   service.addCharacteristic(pressureCharacteristic);
+  /* ________________________________________________________________HUMIDITY */
   service.addCharacteristic(humidityCharacteristic);
+  /* _____________________________________________________________AIR_QUALITY */
+  service.addCharacteristic(airQualityCharacteristic);
+  /* _________________________________________________________SOUND_INTENSITY */
   service.addCharacteristic(sndIntensityCharacteristic);
+  /* ______!!! NOT AVAILABLE (should be delete?) !!!______________SOUND_PITCH */
   service.addCharacteristic(sndPitchCharacteristic);
+  /* _________________________________________________________________INPUT_A */
   service.addCharacteristic(inputACharacteristic);
+  /* _________________________________________________________________INPUT_B */
   service.addCharacteristic(inputBCharacteristic);
+  /* ____________________________________________________EXTERNAL_TEMPERATURE */
+  service.addCharacteristic(extTempCharacteristic);
+  /* ____________________________________________________FUNCTION_GENERATOR_1 */
+  service.addCharacteristic(funcGenOneCharacteristic);
+  /* ____________________________________________________FUNCTION_GENERATOR_2 */
+  service.addCharacteristic(funcGenTwoCharacteristic);
+  /* ________________________________________________________________DISTANCE */
+  service.addCharacteristic(distanceCharacteristic);
+  /* ____________________________________________________________________PING */
+  service.addCharacteristic(pingCharacteristic);
+  
 
+  /* ________________________________________________________________VERSION  */
   versionCharacteristic.setValue(VERSION);
 
   BLE.addService(service);
@@ -103,18 +134,25 @@ void loop(){
 }
 
 void updateSubscribedCharacteristics(){
+  /* ________________________________________________________________CURRENT  */
   if(currentCharacteristic.subscribed()){
     currentCharacteristic.writeValue(science_kit.getCurrent());
   }
 
+
+  /* ________________________________________________________________VOLTAGE  */
   if(voltageCharacteristic.subscribed()){
     voltageCharacteristic.writeValue(science_kit.getVoltage());
   }
-  
+
+
+  /* ______________________________________________________________RESISTANCE */
   if(resistanceCharacteristic.subscribed()){
     resistanceCharacteristic.writeValue(science_kit.getResistance());  
   }
-  
+
+
+  /* _________________________________________________________________LIGHT   */
   if (lightCharacteristic.subscribed()){
     long light[4];
     light[0] = science_kit.getRed();
@@ -124,18 +162,25 @@ void updateSubscribedCharacteristics(){
     lightCharacteristic.writeValue((byte*)light, sizeof(light));
   }
 
+
+  /* _______________________________________________________________PROXIMITY */
   if (proximityCharacteristic.subscribed()){                                                    // need to be fixed
-    /*
+    
     proximityCharacteristic.writeValue(science_kit.getProximity());
-    */
+    
+    
+    /*
     if (science_kit.getUltrasonicIsConnected()){
       proximityCharacteristic.writeValue(science_kit.getDistance()*100.0);
     }
     else{
       proximityCharacteristic.writeValue(-1.0);
     }
+    */
   }
-  
+
+
+  /* ____________________________________________________________ACCELERATION */
   if (accelerationCharacteristic.subscribed()){
     float acceleration[3];
     acceleration[0] = science_kit.getAccelerationX();
@@ -144,6 +189,7 @@ void updateSubscribedCharacteristics(){
     accelerationCharacteristic.writeValue((byte*)acceleration, sizeof(acceleration));
   }
 
+  /* _______________________________________________________________GYROSCOPE */
   if (gyroscopeCharacteristic.subscribed()){
     float gyroscope[3];
     gyroscope[0] = science_kit.getAngularVelocityX();
@@ -152,6 +198,7 @@ void updateSubscribedCharacteristics(){
     gyroscopeCharacteristic.writeValue((byte*)gyroscope, sizeof(gyroscope));
   }
 
+  /* ____________________________________________________________MAGNETOMETER */
   if (magnetometerCharacteristic.subscribed()){
     float magnetometer[3];
     magnetometer[0] = science_kit.getMagneticFieldX();
@@ -160,38 +207,105 @@ void updateSubscribedCharacteristics(){
     magnetometerCharacteristic.writeValue((byte*)magnetometer, sizeof(magnetometer));
   }
   
+  /* 
+   * BME688 
+   */
+
+  /* _____________________________________________________________TEMPERATURE */
   if(temperatureCharacteristic.subscribed()){
     temperatureCharacteristic.writeValue(science_kit.getTemperature());
   }
   
+  /* ________________________________________________________________PRESSURE */
   if(pressureCharacteristic.subscribed()){
     pressureCharacteristic.writeValue(science_kit.getPressure());
   }
   
+  /* ________________________________________________________________HUMIDITY */
   if(humidityCharacteristic.subscribed()){
     humidityCharacteristic.writeValue(science_kit.getHumidity());
   }
+
+  /* _____________________________________________________________AIR_QUALITY */
+  if(airQualityCharacteristic.subscribed()){
+    airQualityCharacteristic.writeValue(science_kit.getAirQuality());
+  }
   
-  // need to be fixed
+  /*
+   * MICROPHONE
+   */
+
+  /* _________________________________________________________SOUND_INTENSITY */
+  /* NOTE: raw value - value not in Db */ 
   if(sndIntensityCharacteristic.subscribed()){
     sndIntensityCharacteristic.writeValue(science_kit.getMicrophoneRMS());
   }
 
-  // need to be fixed
+  /* ______!!! NOT AVAILABLE (should be delete?) !!!______________SOUND_PITCH */
+  /* NOTE: pith is frequency (not available because FFT cannot be performed)  */
   if(sndPitchCharacteristic.subscribed()){
     sndPitchCharacteristic.writeValue(science_kit.getExternalTemperature());
   }
 
+  /* _________________________________________________________________INPUT_A */
   if (inputACharacteristic.subscribed()){
-    /*
     inputACharacteristic.writeValue(science_kit.getInputA());
+    
+    /* NOTE_ OLD CODE USED FOR DEBUG
+      inputACharacteristic.writeValue(science_kit.getFrequency1());
     */
-    inputACharacteristic.writeValue(science_kit.getFrequency1());
   }
 
+  /* _________________________________________________________________INPUT_B */
   if (inputBCharacteristic.subscribed()){
     inputBCharacteristic.writeValue(science_kit.getInputB());
   }
+
+  /*_____________________________________________________EXTERNAL_TEMPERATURE */
+  if(extTempCharacteristic.subscribed()){
+    extTempCharacteristic.writeValue(science_kit.getExternalTemperature());
+  }
+
+
+  /* ____________________________________________________FUNCTION_GENERATOR_1 */
+  if (funcGenOneCharacteristic.subscribed()){
+    long f1[2];
+    f1[0] = (science_kit.getFrequency1() * science_kit.getRange1());
+    f1[1] = science_kit.getPhase1();
+    funcGenOneCharacteristic.writeValue((byte*)f1, sizeof(f1));
+  }
+
+  /* ____________________________________________________FUNCTION_GENERATOR_2 */
+  if (funcGenTwoCharacteristic.subscribed()){
+    long f2[2];
+    f2[0] = (science_kit.getFrequency2() * science_kit.getRange2());
+    f2[1] = science_kit.getPhase2();
+    funcGenTwoCharacteristic.writeValue((byte*)f2, sizeof(f2));
+  }
+
+  /* ________________________________________________________________DISTANCE */
+  if (distanceCharacteristic.subscribed()){
+    if (science_kit.getUltrasonicIsConnected()){
+      /* NOTE: getDistance() calls getMeters() 
+         Requested value is in meters */
+      distanceCharacteristic.writeValue(science_kit.getDistance());
+    }
+    else{
+      distanceCharacteristic.writeValue(-1.0);
+    }
+  }
+
+  /* ____________________________________________________________________PING */
+  if (pingCharacteristic.subscribed()){
+     if (science_kit.getUltrasonicIsConnected()){
+      /* NOTE: getTravelTime() returns micro seconds  */
+      /* Converted to milliseconds (agreed with RF 20230719) */
+      pingCharacteristic.writeValue(science_kit.getTravelTime() * 1000.0 );
+    }
+    else{
+      pingCharacteristic.writeValue(-1.0);
+    } 
+  }  
 }
 
 
