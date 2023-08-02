@@ -6,6 +6,7 @@
 #include "pin_def.h"
 #include "led_gauge.h"
 #include "led_array.h"
+#include <string>
 
 
 using namespace std;
@@ -27,6 +28,7 @@ void CAtWrapper::add_cmds() {
             auto &production_code = parser.args[0];
             if(production_code == _PRODUCTION_CODE_MODE) {
                app_status = APP_DIAGNOSTIC;
+               srv.write_response_prompt();
                return chAT::CommandStatus::OK;
             }
             return chAT::CommandStatus::ERROR;
@@ -72,8 +74,12 @@ void CAtWrapper::add_cmds() {
               v = 0;
            }
            v = map(v, 0,ADC_RES, 0, 10);
-           Serial.print(v);
-           srv.write_line_end();   
+           string val = to_string(v);
+           srv.write_response_prompt();
+           srv.write_str(val);
+           //Serial.print(v);
+           srv.write_line_end(); 
+           srv.dontSendOk();  
            return chAT::CommandStatus::OK;
          }
       
@@ -98,22 +104,27 @@ void CAtWrapper::add_cmds() {
             auto &st = parser.args[0];
             if(st == "ON") {
                app_status = APP_DIAGNOSTIC_LED_ON;
+               srv.write_response_prompt();
                return chAT::CommandStatus::OK;
             }
             else if(st == "ON_F1") {
               app_status = APP_DIAGNOSTIC_LED_ON_F1;
+              srv.write_response_prompt();
                return chAT::CommandStatus::OK;
             }
             else if(st == "ON_F2") {
               app_status = APP_DIAGNOSTIC_LED_ON_F2;
+              srv.write_response_prompt();
               return chAT::CommandStatus::OK;
             }
             else if(st == "ON_R") {
               app_status = APP_DIAGNOSTIC_LED_ON_R;
+              srv.write_response_prompt();
               return chAT::CommandStatus::OK;
             }
             else if(st == "OFF") {
                app_status = APP_DIAGNOSTIC;
+               srv.write_response_prompt();
                return chAT::CommandStatus::OK;
             }
             return chAT::CommandStatus::ERROR;
@@ -148,7 +159,7 @@ void CAtWrapper::add_cmds() {
               }
             }
             f1 = (float)atof(f.c_str());
- 
+            srv.write_response_prompt();
             return chAT::CommandStatus::OK;
          }
       
@@ -180,7 +191,7 @@ void CAtWrapper::add_cmds() {
               }
             }
             f2 = (float)atof(f.c_str());
- 
+            srv.write_response_prompt();
             return chAT::CommandStatus::OK;
          }
       
@@ -219,7 +230,7 @@ void CAtWrapper::add_cmds() {
               a1 = 0.0;
             }
             
- 
+            srv.write_response_prompt();
             return chAT::CommandStatus::OK;
          }
       
@@ -256,7 +267,7 @@ void CAtWrapper::add_cmds() {
               a2 = 0.0;
             }
             
- 
+            srv.write_response_prompt();
             return chAT::CommandStatus::OK;
          }
       

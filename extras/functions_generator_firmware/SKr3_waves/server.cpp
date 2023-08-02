@@ -111,6 +111,10 @@ namespace SudoMaker::chAT {
 		bool nonblocking = false;
 		bool parser_debug = false;
 
+		bool inibit_ok = false;
+
+		void dontSendOk() { inibit_ok = true; }
+
 		ATParser parser;
 
 		void do_parse() {
@@ -151,15 +155,17 @@ namespace SudoMaker::chAT {
 		}
 
 		void write_raw(data_holder d) {
-			while (buf_write_len + d.size > buf_write_len_limit) {
+			
+			while (buf_write_len + d.size > buf_write_len_limit) {	
 				if (buf_write.empty()) {
 					return;
 				} else {
+					
 					buf_write_len -= buf_write.front().size;
 					buf_write.pop_front();
 				}
 			}
-
+            
 			auto &nd = buf_write.emplace_back(std::move(d));
 			nd.resolve_holder();
 			buf_write_len += nd.size;
@@ -187,7 +193,13 @@ namespace SudoMaker::chAT {
 		}
 
 		void write_data(const void *buf, size_t len) {
-			write_raw({(uint8_t *) buf, len, 0});
+			data_holder d;
+			d.data = (uint8_t *)buf;
+			d.size = len;
+			d.position = 0;
+
+
+			write_raw(d);
 		}
 
 		void write_cstr(const char *buf, ssize_t len = -1) {
@@ -197,6 +209,8 @@ namespace SudoMaker::chAT {
 		void write_str(std::string str) {
 			data_holder dh;
 			dh.position = 0;
+			
+			dh.size = str.size(); // FIX ERROR 
 			dh.holder = std::move(str);
 
 			write_raw(dh);
@@ -216,13 +230,23 @@ namespace SudoMaker::chAT {
 		}
 
 		void write_ok() {
+
 			static const char str[] = "OK\r\n";
-			write_cstr(str, sizeof(str) - 1);
+			if(!inibit_ok) {
+				write_cstr(str, sizeof(str) - 1);
+			}
+			else {
+			   //write_line_end();
+			}
+			write_cstr("EndOfTest", sizeof("EndOfTest") - 1);
+			write_line_end();
+			inibit_ok = false;
 		}
 
 		void write_response_prompt() {
 			write_str(parser.command);
-			static const char str[] = ": ";
+			// REMOVED SPACE AFTER : at the end of command 
+			static const char str[] = ":";
 			write_cstr(str, sizeof(str) - 1);
 		}
 
@@ -362,6 +386,10 @@ namespace SudoMaker::chAT {
 
 	void Server::continue_read() noexcept {
 		pimpl->continue_read();
+	}
+
+	void Server::dontSendOk() {
+		pimpl->dontSendOk();
 	}
 
 	void Server::write_data(const void *buf, size_t len) {

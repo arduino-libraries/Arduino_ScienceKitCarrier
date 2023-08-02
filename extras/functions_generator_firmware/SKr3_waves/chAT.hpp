@@ -100,6 +100,7 @@ namespace SudoMaker::chAT {
 		std::vector<uint8_t> inhibit_read(size_t raw_data_len);
 		void continue_read() noexcept;
 
+		void dontSendOk();
 		void write_data(const void *buf, size_t len);
 		void write_cstr(const char *buf, ssize_t len = -1);
 		void write_str(std::string str);
