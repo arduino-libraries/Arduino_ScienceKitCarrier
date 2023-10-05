@@ -78,7 +78,7 @@ void setup(){
   service.addCharacteristic(airQualityCharacteristic);
   /* _________________________________________________________SOUND_INTENSITY */
   service.addCharacteristic(sndIntensityCharacteristic);
-  /* ______!!! NOT AVAILABLE (should be delete?) !!!______________SOUND_PITCH */
+  /* _____________________________________________________________SOUND_PITCH */
   service.addCharacteristic(sndPitchCharacteristic);
   /* _________________________________________________________________INPUT_A */
   service.addCharacteristic(inputACharacteristic);
@@ -164,19 +164,8 @@ void updateSubscribedCharacteristics(){
 
 
   /* _______________________________________________________________PROXIMITY */
-  if (proximityCharacteristic.subscribed()){                                                    // need to be fixed
-    
+  if (proximityCharacteristic.subscribed()){                                     
     proximityCharacteristic.writeValue(science_kit.getProximity());
-    
-    
-    /*
-    if (science_kit.getUltrasonicIsConnected()){
-      proximityCharacteristic.writeValue(science_kit.getDistance()*100.0);
-    }
-    else{
-      proximityCharacteristic.writeValue(-1.0);
-    }
-    */
   }
 
 
@@ -241,8 +230,7 @@ void updateSubscribedCharacteristics(){
     sndIntensityCharacteristic.writeValue(science_kit.getMicrophoneRMS());
   }
 
-  /* ______!!! NOT AVAILABLE (should be delete?) !!!______________SOUND_PITCH */
-  /* NOTE: pith is frequency (not available because FFT cannot be performed)  */
+  /* _____________________________________________________________SOUND_PITCH */
   if(sndPitchCharacteristic.subscribed()){
     sndPitchCharacteristic.writeValue(science_kit.getExternalTemperature());
   }
@@ -250,10 +238,6 @@ void updateSubscribedCharacteristics(){
   /* _________________________________________________________________INPUT_A */
   if (inputACharacteristic.subscribed()){
     inputACharacteristic.writeValue(science_kit.getInputA());
-    
-    /* NOTE_ OLD CODE USED FOR DEBUG
-      inputACharacteristic.writeValue(science_kit.getFrequency1());
-    */
   }
 
   /* _________________________________________________________________INPUT_B */

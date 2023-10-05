@@ -19,7 +19,6 @@
 
 #include "Arduino_ScienceKitCarrier.h"
 
-// static members must be initialized externally the class definition
 short ScienceKitCarrier::sampleBuffer[MICROPHONE_BUFFER_SIZE];
 volatile int ScienceKitCarrier::samplesRead;
 
