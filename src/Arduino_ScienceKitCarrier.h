@@ -32,7 +32,7 @@
 #include "Arduino_GroveI2C_Ultrasonic.h"
 #include <PDM.h>
 
-#include "../../OneWireNg/src/platform/OneWireNg_PicoRP2040.h"  // forces to use gpio insted PIO hw
+#include "../../OneWireNg/src/platform/OneWireNg_PicoRP2040.h"  // forces to use gpio instead PIO hw
 #define OneWireNg_CurrentPlatform OneWireNg_PicoRP2040
 #include "drivers/DSTherm.h"
 #include "utils/Placeholder.h"

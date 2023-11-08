@@ -48,7 +48,7 @@ class LedGauge: public LedArray{
       two=_two;
     }
 
-    //Call it everytime you want to read the pot and update leds
+    //Call it every time you want to read the pot and update leds
     void refresh(){
       value=analogRead(pot);
       if (value<=ADC_RES+100){  // pots create strange effects near 0
