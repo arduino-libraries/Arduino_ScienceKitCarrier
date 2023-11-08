@@ -35,7 +35,7 @@
 const uint32_t SHUNT_MICRO_OHM{100000};    // check schematic R20
 const uint16_t MAXIMUM_AMPS{1};            // 1A
 
-// Resistence
+// Resistance
 #define RESISTANCE_PIN A2
 #define RESISTOR_AUX  1000.0
 #define REF_VOLTAGE 3.3
