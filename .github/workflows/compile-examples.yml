@@ -1,5 +1,6 @@
 name: Compile Examples
 
+# See: https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows
 on:
   pull_request:
     paths:
@@ -11,6 +12,11 @@ on:
       - ".github/workflows/compile-examples.yml"
       - "examples/**"
       - "src/**"
+  schedule:
+    # Run every Tuesday at 8 AM UTC to catch breakage caused by changes to external resources (libraries, platforms).
+    - cron: "0 8 * * TUE"
+  workflow_dispatch:
+  repository_dispatch:
 
 jobs:
   build:
@@ -38,13 +44,14 @@ jobs:
           - fqbn: arduino:mbed_nano:nanorp2040connect
             platforms: |
               - name: arduino:mbed_nano
+            artifact-name-suffix: arduino-mbed_nano-nanorp2040connect
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Compile examples
-        uses: arduino/compile-sketches@main
+        uses: arduino/compile-sketches@v1
         with:
           fqbn: ${{ matrix.board.fqbn }}
           platforms: ${{ matrix.board.platforms }}
@@ -53,9 +60,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           sketches-report-path: ${{ env.SKETCHES_REPORTS_PATH }}
 
-      - name: Save memory usage change report as artifact
-        if: github.event_name == 'pull_request'
+      - name: Save sketches report as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.SKETCHES_REPORTS_PATH }}
+          if-no-files-found: error
           path: ${{ env.SKETCHES_REPORTS_PATH }}
+          name: sketches-report-${{ matrix.board.artifact-name-suffix }}
