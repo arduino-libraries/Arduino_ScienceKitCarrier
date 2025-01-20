@@ -21,28 +21,35 @@
 #define __ARDUINO_SCIENCEKITCARRIER_H__
 
 #include <Arduino.h>
+
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #include "WiFiNINA.h"
 #include "mbed.h"
 #include "rtos.h"
+#include <PDM.h>
+#endif
+
 #include <Wire.h>
 #include "Arduino_APDS9960.h"
 #include "INA.h"
 #include "bsec.h"
 #include "Arduino_BMI270_BMM150.h"
 #include "Arduino_GroveI2C_Ultrasonic.h"
-#include <PDM.h>
 
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #include "../../OneWireNg/src/platform/OneWireNg_PicoRP2040.h"  // forces to use gpio instead PIO hw
 #define OneWireNg_CurrentPlatform OneWireNg_PicoRP2040
 #include "drivers/DSTherm.h"
 #include "utils/Placeholder.h"
+#endif
 
 
 #include "./utils/function_generator_controller.h"
 #include "./utils/Arduino_ScienceKitCarrier_definitions.h"
 
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 static  Placeholder<OneWireNg_CurrentPlatform> ow;
-
+#endif
 
 
 class ScienceKitCarrier{
@@ -82,15 +89,15 @@ class ScienceKitCarrier{
     float external_temperature;
 
 
-
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
     uint microphone_rms, rms;
     static const char channels = MICROPHONE_CHANNELS;
     static const int frequency = MICROPHONE_FREQUENCY;
 
-
     rtos::Thread * thread_activity_led;
     rtos::Thread * thread_update_bme;
     rtos::Thread * thread_external_temperature;
+    #endif
 
     bool thread_bme_is_running;
     bool thread_ext_temperature_is_running;
@@ -102,19 +109,23 @@ class ScienceKitCarrier{
 
     int begin(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
     void update(const bool roundrobin=false);  // this makes update on: analog in, imu, apds, ina, resistance, round robin enables one sensor update
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
     void startAuxiliaryThreads(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
+    #endif
 
 
-
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
     void delay(unsigned long t); // you must use this instead delay, due threads usage
-
+    #endif
 
 
     /* Blink red alert */
     void errorTrap(const int error_code=0);
 
     /* Activity led */
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
     void threadActivityLed();
+    #endif
     void setActivityLed(const int led_state=ACTIVITY_LED_OFF);
 
 
@@ -160,8 +171,9 @@ class ScienceKitCarrier{
     float getPressure();          // hPascal
     float getHumidity();          // Percentage
     float getAirQuality();        // index, if good it is 25.0
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
     void threadBME688();          // thread used to update BME688 automatically in multithread mode
-
+    #endif
 
 
     /* BMI270 & BMM150, 9dof imu, acceleration, gyroscope and magnetometer */
@@ -207,14 +219,15 @@ class ScienceKitCarrier{
 
 
     /* External temperature probe - Dallas DS18B20 */
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
     int beginExternalTemperature();
     void updateExternalTemperature();
     float getExternalTemperature();     // celsius
     bool getExternalTemperatureIsConnected();
     void threadExternalTemperature();
+    #endif
 
-
-
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
     /* Microphone - onboard PDM */
     int beginMicrophone();
     void updateMicrophone();  
@@ -223,7 +236,7 @@ class ScienceKitCarrier{
 
     static short sampleBuffer[MICROPHONE_BUFFER_SIZE]; //must be public
     static volatile int samplesRead;
-
+    #endif
 
 };
 

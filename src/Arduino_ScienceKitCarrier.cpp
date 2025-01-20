@@ -19,8 +19,10 @@
 
 #include "Arduino_ScienceKitCarrier.h"
 
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 short ScienceKitCarrier::sampleBuffer[MICROPHONE_BUFFER_SIZE];
 volatile int ScienceKitCarrier::samplesRead;
+#endif
 
 
 ScienceKitCarrier::ScienceKitCarrier(){
@@ -80,14 +82,18 @@ ScienceKitCarrier::ScienceKitCarrier(){
   external_temperature=EXTERNAL_TEMPERATURE_DISABLED;
   external_temperature_is_connected=false;
 
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
   microphone_rms=0;
   rms=0;
+  #endif
 
   round_robin_index=0;
   
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
   thread_activity_led = new rtos::Thread();
   thread_update_bme = new rtos::Thread();
   thread_external_temperature = new rtos::Thread();
+  #endif
 
   thread_bme_is_running = false;
   thread_ext_temperature_is_running = false;
@@ -142,9 +148,11 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
   }
 
   // let's start microphone (PDM on Arduino Nano RP2040 Connect)
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
   if (beginMicrophone()!=0){
     return ERR_BEGIN_MICROPHONE;
   }
+  #endif
 
     // let's start ultrasonic and check if it is connected
   if (beginUltrasonic()!=0){
@@ -152,7 +160,7 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
   }
 
   // let's start bme688 and external ds18b20 probe
-  startAuxiliaryThreads(auxiliary_threads);
+  //WIP startAuxiliaryThreads(auxiliary_threads);
 }
 
 
@@ -164,7 +172,9 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
 /********************************************************************/
 
 void ScienceKitCarrier::update(const bool roundrobin){
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
   updateMicrophone();                        // about 1ms when MICROPHONE_BUFFER_SIZE is 512
+  #endif
   if (!roundrobin){
     updateAnalogInput();
     updateAPDS();
@@ -225,12 +235,14 @@ int ScienceKitCarrier::beginAnalogInput(){
 
 void ScienceKitCarrier::updateAnalogInput(const uint8_t input_to_update){
   if ((input_to_update==UPDATE_INPUT_A)||(input_to_update==UPDATE_ALL)){
+    /*   WIP
     if (!getExternalTemperatureIsConnected()){
       inputA=analogRead(inputA_pin);
     }
     else{
       inputA=ANALOGIN_DISABLED;
     } 
+    */
   }
   if ((input_to_update==UPDATE_INPUT_B)||(input_to_update==UPDATE_ALL)){
     inputB=analogRead(inputB_pin);
@@ -433,6 +445,7 @@ float ScienceKitCarrier::getAirQuality(){
   return airquality;
 }
 
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 void ScienceKitCarrier::threadBME688(){
   beginBME688();
   while(1){
@@ -440,6 +453,7 @@ void ScienceKitCarrier::threadBME688(){
     rtos::ThisThread::sleep_for(1000);
   }
 }
+#endif
 
 
 
@@ -537,9 +551,11 @@ float ScienceKitCarrier::getMagneticFieldZ(){
 /*                             delay                                */
 /********************************************************************/
 
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 void ScienceKitCarrier::delay(unsigned long t){
   rtos::ThisThread::sleep_for(t);
 }
+#endif
 
 
 
@@ -569,6 +585,7 @@ void ScienceKitCarrier::errorTrap(const int error_code){
   }
 }
 
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 void ScienceKitCarrier::threadActivityLed(){
   while(1){
     switch (activity_led_state){
@@ -614,6 +631,7 @@ void ScienceKitCarrier::threadActivityLed(){
     }  
   }
 }
+#endif
 
 void ScienceKitCarrier::setActivityLed(const int led_state){
   activity_led_state=led_state;
@@ -698,7 +716,9 @@ bool ScienceKitCarrier::getUltrasonicIsConnected(){
 /********************************************************************/
 /*                    External Temperature Probe                    */
 /********************************************************************/
+//WIP
 
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 int ScienceKitCarrier::beginExternalTemperature(){
   new (&ow) OneWireNg_CurrentPlatform(OW_PIN, false);
   DSTherm drv(ow);
@@ -734,6 +754,7 @@ void ScienceKitCarrier::updateExternalTemperature(){
   }
 }
 
+
 float ScienceKitCarrier::getExternalTemperature(){
   return external_temperature;
 }
@@ -750,13 +771,14 @@ void ScienceKitCarrier::threadExternalTemperature(){
     rtos::ThisThread::sleep_for(1000);
   }
 }
+#endif
 
 
 
 /********************************************************************/
 /*                             Microphone                           */
 /********************************************************************/
-
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 int ScienceKitCarrier::beginMicrophone(){
   PDM.setGain(50);
   PDM.onReceive(updateMicrophoneDataBuffer);
@@ -788,6 +810,7 @@ void ScienceKitCarrier::updateMicrophoneDataBuffer(){
 uint ScienceKitCarrier::getMicrophoneRMS(){
   return microphone_rms;
 }
+#endif
 
 
 
@@ -795,6 +818,7 @@ uint ScienceKitCarrier::getMicrophoneRMS(){
 /********************************************************************/
 /*                              Threads                             */
 /********************************************************************/
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 
 void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
   //thread_activity_led->start(mbed::callback(this, &ScienceKitCarrier::threadActivityLed));    //left for legacy on prototypes and maybe future implementations
@@ -816,7 +840,7 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
   }
 }
 
-
+#endif
 
 
 /***
