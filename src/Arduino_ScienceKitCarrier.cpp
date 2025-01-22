@@ -48,7 +48,7 @@ ScienceKitCarrier::ScienceKitCarrier(){
   resistance_pin = RESISTANCE_PIN;
   opencircuit_resistance = RESISTANCE_CALIBRATION_HIGH;
 
-  bme688 = new Bsec();
+  bme688 = new Bsec2();
   temperature=0.0;
   pressure=0.0;
   humidity=0.0;
@@ -419,39 +419,40 @@ int ScienceKitCarrier::beginBME688(){
   SPI.begin();
   bme688->begin(bme688_cs,SPI);
 
-  if (bme688->bsecStatus != 0){
+  if (bme688->status != 0){
     return ERR_BEGIN_BME;
   }
-  if (bme688->bme68xStatus != 0){
+  if (bme688->sensor.status != 0){
     return ERR_BEGIN_BME;
   }
 
-  bsec_virtual_sensor_t sensorList[13] = {
-    BSEC_OUTPUT_IAQ,
-    BSEC_OUTPUT_STATIC_IAQ,
-    BSEC_OUTPUT_CO2_EQUIVALENT,
-    BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
-    BSEC_OUTPUT_RAW_TEMPERATURE,
-    BSEC_OUTPUT_RAW_PRESSURE,
-    BSEC_OUTPUT_RAW_HUMIDITY,
-    BSEC_OUTPUT_RAW_GAS,
-    BSEC_OUTPUT_STABILIZATION_STATUS,
-    BSEC_OUTPUT_RUN_IN_STATUS,
-    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
-    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
-    BSEC_OUTPUT_GAS_PERCENTAGE
-  };
+  bsecSensor sensorList[14] = {
+            BSEC_OUTPUT_IAQ,
+            BSEC_OUTPUT_RAW_TEMPERATURE,
+            BSEC_OUTPUT_RAW_PRESSURE,
+            BSEC_OUTPUT_RAW_HUMIDITY,
+            BSEC_OUTPUT_RAW_GAS,
+            BSEC_OUTPUT_STABILIZATION_STATUS,
+            BSEC_OUTPUT_RUN_IN_STATUS,
+            BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
+            BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
+            BSEC_OUTPUT_STATIC_IAQ,
+            BSEC_OUTPUT_CO2_EQUIVALENT,
+            BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
+            BSEC_OUTPUT_GAS_PERCENTAGE,
+            BSEC_OUTPUT_COMPENSATED_GAS
+    };
 
-  bme688->updateSubscription(sensorList, 13, BSEC_SAMPLE_RATE_CONT);
+  bme688->updateSubscription(sensorList, 14, BSEC_SAMPLE_RATE_CONT);
   return 0;
 }
 
 void ScienceKitCarrier::updateBME688(){
   if (bme688->run()){
-    temperature=bme688->temperature;
-    pressure=(bme688->pressure)/100.0;
-    humidity=bme688->humidity;
-    airquality=bme688->iaq;
+    temperature=bme688->getData(BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE).signal;
+    pressure=bme688->getData(BSEC_OUTPUT_RAW_PRESSURE).signal;
+    humidity=bme688->getData(BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY).signal;
+    airquality=bme688->getData(BSEC_OUTPUT_IAQ).signal;
   }
 }
 
