@@ -32,7 +32,9 @@
 #include <Wire.h>
 #include "Arduino_APDS9960.h"
 #include "INA.h"
-#include "bsec.h"
+
+#include "bsec2.h"
+
 #include "Arduino_BMI270_BMM150.h"
 #include "Arduino_GroveI2C_Ultrasonic.h"
 
@@ -69,7 +71,7 @@ class ScienceKitCarrier{
     uint8_t resistance_pin;
     float resistance, opencircuit_resistance;
 
-    Bsec * bme688;
+    Bsec2 * bme688;
     float temperature, pressure, humidity, airquality;
     uint8_t bme688_cs;
 
