@@ -28,7 +28,12 @@ ScienceKitCarrier science_kit;
 rtos::Thread thread_update_sensors;
 #endif
 
+#ifdef ESP32
+TaskHandle_t update_task;
+#endif
+
 bool ble_is_connected = false;
+
 
 
 void setup(){
@@ -108,21 +113,37 @@ void setup(){
 
   BLE.addService(service);
   BLE.advertise();
-
-  //science_kit.startAuxiliaryThreads(); // start the BME688 and External Temperature Probe threads
+  
   #ifdef ARDUINO_NANO_RP2040_CONNECT
+  science_kit.startAuxiliaryThreads(); // start the BME688 and External Temperature Probe threads
   thread_update_sensors.start(update); // this thread updates sensors
   #endif
+
+  //xTaskCreatePinnedToCore(&update, "update", 10000, NULL, 1, &update_task, 1); // starts the update sensors thread on core 1 (user)
+
 }
 
-
+/*
 void update(void){
   while(1){
     science_kit.update(ROUND_ROBIN_ENABLED);
-    //rtos::ThisThread::sleep_for(25);
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
+      rtos::ThisThread::sleep_for(25);
+    #endif
+    #ifdef ESP32
+      delay(25);
+    #endif
+  }
+}
+*/
+
+static void update(void * pvParameters){
+  while(1){
+    science_kit.update(ROUND_ROBIN_ENABLED);
     delay(25);
   }
 }
+
 
 void loop(){
   BLEDevice central = BLE.central();
@@ -208,7 +229,6 @@ void updateSubscribedCharacteristics(){
   /* 
    * BME688 
    */
-
   /* _____________________________________________________________TEMPERATURE */
   if(temperatureCharacteristic.subscribed()){
     temperatureCharacteristic.writeValue(science_kit.getTemperature());
@@ -228,7 +248,7 @@ void updateSubscribedCharacteristics(){
   if(airQualityCharacteristic.subscribed()){
     airQualityCharacteristic.writeValue(science_kit.getAirQuality());
   }
-  
+
   /*
    * MICROPHONE
    */
@@ -237,12 +257,14 @@ void updateSubscribedCharacteristics(){
   /* _________________________________________________________SOUND_INTENSITY */
   /* NOTE: raw value - value not in Db */ 
   if(sndIntensityCharacteristic.subscribed()){
-    sndIntensityCharacteristic.writeValue(science_kit.getMicrophoneRMS());
+    //sndIntensityCharacteristic.writeValue(science_kit.getMicrophoneRMS());
+    sndIntensityCharacteristic.writeValue(0.0);
   }
 
   /* _____________________________________________________________SOUND_PITCH */
   if(sndPitchCharacteristic.subscribed()){
-    sndPitchCharacteristic.writeValue(science_kit.getExternalTemperature());
+    //sndPitchCharacteristic.writeValue(science_kit.getExternalTemperature());
+    sndPitchCharacteristic.writeValue(0.0);
   }
   #endif
 
