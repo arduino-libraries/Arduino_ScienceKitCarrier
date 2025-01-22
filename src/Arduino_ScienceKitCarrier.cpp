@@ -111,11 +111,20 @@ ScienceKitCarrier::ScienceKitCarrier(){
 
 int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
   pinMode(LEDR,OUTPUT);
-  digitalWrite(LEDR,LOW);
   pinMode(LEDG,OUTPUT);
-  digitalWrite(LEDG,LOW);
   pinMode(LEDB,OUTPUT);
+
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+  digitalWrite(LEDR,LOW);
+  digitalWrite(LEDG,LOW);
   digitalWrite(LEDB,LOW);
+  #endif
+
+  #ifdef ESP32
+  digitalWrite(LEDR,HIGH);
+  digitalWrite(LEDG,HIGH);
+  digitalWrite(LEDB,HIGH);
+  #endif
 
 
   Wire.begin();
@@ -131,6 +140,7 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
   if (beginINA()!=0){
     return ERR_BEGIN_INA;
   }
+  
 
   // let's start resistance measurement
   if (beginResistance()!=0){
@@ -154,10 +164,12 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
   }
   #endif
 
-    // let's start ultrasonic and check if it is connected
+  // let's start ultrasonic and check if it is connected
+  /* WIP
   if (beginUltrasonic()!=0){
     return ERR_BEGIN_ULTRASONIC;
   }
+  */
 
   // let's start bme688 and external ds18b20 probe
   //WIP startAuxiliaryThreads(auxiliary_threads);
@@ -184,9 +196,10 @@ void ScienceKitCarrier::update(const bool roundrobin){
     updateFrequencyGeneratorData();
 
     // update external
-    updateUltrasonic();
+    //WIP updateUltrasonic();
   }
   else{
+    //WIP
     switch (round_robin_index){
       case 0: 
         if (thread_ext_temperature_is_running){
@@ -205,7 +218,7 @@ void ScienceKitCarrier::update(const bool roundrobin){
         break;
       case 3:
         updateResistance();                  // about 1ms
-        updateUltrasonic();                  // requires about 5ms when not connected
+        // WIP updateUltrasonic();                  // requires about 5ms when not connected
         break;
       case 4:
         updateIMU();                         // heavy task, 13ms
@@ -347,10 +360,10 @@ int ScienceKitCarrier::beginResistance(){
   pinMode(resistance_pin,INPUT);
   // search for minimum open circuit resistance
   for (int i=0; i<20; i++){
-    resistance=REF_VOLTAGE*analogRead(resistance_pin)/1024.0;
-    resistance=(RESISTOR_AUX*REF_VOLTAGE/resistance)-RESISTOR_AUX;
+    resistance = getResistanceMeasureVolts();
+    resistance = (RESISTOR_AUX*REF_VOLTAGE/resistance)-RESISTOR_AUX;
     if (opencircuit_resistance>resistance){
-      opencircuit_resistance=resistance;
+      opencircuit_resistance = resistance;
     }
     delay(5);
   }
@@ -360,22 +373,35 @@ int ScienceKitCarrier::beginResistance(){
 }
 
 void ScienceKitCarrier::updateResistance(){
-  resistance=REF_VOLTAGE*analogRead(resistance_pin)/1024.0;
-  if (resistance<=0){
-    resistance=-2.0;
+  resistance = getResistanceMeasureVolts();
+  if (resistance <= 0){
+    resistance = -2.0;
   }
   else{
-    resistance=(RESISTOR_AUX*REF_VOLTAGE/resistance)-RESISTOR_AUX;
-    if (resistance<=RESISTANCE_CALIBRATION_LOW){
-      resistance=0.0;
+    resistance = (RESISTOR_AUX*REF_VOLTAGE/resistance)-RESISTOR_AUX;
+    if (resistance <= RESISTANCE_CALIBRATION_LOW){
+      resistance = 0.0;
     }
     else{
       if (resistance>=opencircuit_resistance){
-        resistance=-1.0;
+        resistance = -1.0;
       }
     }
   }
 }
+
+float ScienceKitCarrier::getResistanceMeasureVolts(){
+  float value = 0.0;
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    value = REF_VOLTAGE*analogRead(resistance_pin)/ADC_RESOLUTION;
+  #endif
+  #ifdef ESP32
+    value = analogReadMilliVolts(resistance_pin)/1000.0;
+  #endif
+  return value;
+}
+
+
 
 float ScienceKitCarrier::getResistance(){
   return resistance;

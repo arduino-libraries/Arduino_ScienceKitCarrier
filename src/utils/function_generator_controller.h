@@ -49,7 +49,7 @@ class FunctionGeneratorController{
       wire.beginTransmission(address);
       wire.write(FG_VERSION);
       wire.endTransmission();
-      wire.requestFrom(address,2);
+      wire.requestFrom((uint8_t)address,(uint8_t)2);
       wire.readBytes(version,2);
       return String(version[0])+"."+String(version[1]);
     }
@@ -58,7 +58,7 @@ class FunctionGeneratorController{
       wire.beginTransmission(address);
       wire.write(FG_DATA);
       wire.endTransmission();
-      wire.requestFrom(address,6);
+      wire.requestFrom((uint8_t)address,(uint8_t)6);
       wire.readBytes(data,6);
     }
 

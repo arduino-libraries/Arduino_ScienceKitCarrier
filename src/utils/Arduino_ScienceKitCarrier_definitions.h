@@ -38,9 +38,20 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 // Resistance
 #define RESISTANCE_PIN A2
 #define RESISTOR_AUX  1000.0
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #define REF_VOLTAGE 3.3
+#endif 
+#ifdef ESP32
+#define REF_VOLTAGE 3.15
+#endif 
 #define RESISTANCE_CALIBRATION_HIGH 200000
 #define RESISTANCE_CALIBRATION_LOW 10
+#ifdef ARDUINO_NANO_RP2040_CONNECT
+#define ADC_RESOLUTION 1023.0
+#endif
+#ifdef ESP32
+#define ADC_RESOLUTION 4095.0
+#endif
 
 // Imu
 #define G_EARTH 9.807
@@ -53,10 +64,11 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define EXTERNAL_TEMPERATURE_DISABLED -273.15; // absolute zero xD
 
 // Microphone - PDM on Arduino Nano RP2040 Connect
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #define MICROPHONE_BUFFER_SIZE 512
 #define MICROPHONE_CHANNELS 1
 #define MICROPHONE_FREQUENCY 16000
-
+#endif
 
 // Errors
 #define ERR_BEGIN_APDS -3
@@ -67,8 +79,9 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define ERR_BEGIN_FUNCTION_GENERATOR_CONTROLLER -8
 #define ERR_BEGIN_ULTRASONIC -9
 #define ERR_BEGIN_EXTERNAL_TEMPERATURE -10
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #define ERR_BEGIN_MICROPHONE -11
-
+#endif
 
 
 

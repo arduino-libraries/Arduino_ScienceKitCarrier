@@ -161,6 +161,7 @@ class ScienceKitCarrier{
     int beginResistance();
     void updateResistance();
     float getResistance();        // Ohm
+    float getResistanceMeasureVolts();  // Volt
 
 
 
