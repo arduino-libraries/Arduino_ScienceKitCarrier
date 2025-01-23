@@ -60,7 +60,12 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define BME688_CS 10
 
 // External temperature connected on input A
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #define OW_PIN digitalPinToPinName(INPUTA_PIN)
+#endif
+#ifdef ESP32
+#define OW_PIN digitalPinToGPIONumber(INPUTA_PIN)
+#endif
 #define EXTERNAL_TEMPERATURE_DISABLED -273.15; // absolute zero xD
 
 // Microphone - PDM on Arduino Nano RP2040 Connect
@@ -99,6 +104,9 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define START_INTERNAL_AMBIENT_SENSOR 2     // bme688
 #define START_EXTERNAL_AMBIENT_SENSOR 3     // ds18b20
 
+
+#define EXTERNAL_TEMPERATURE_CORE 1 // user
+#define INTERNAL_TEMPERATURE_CORE 0 // other
 
 
 

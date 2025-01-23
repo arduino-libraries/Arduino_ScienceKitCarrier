@@ -172,7 +172,7 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
   */
 
   // let's start bme688 and external ds18b20 probe
-  //WIP startAuxiliaryThreads(auxiliary_threads);
+  startAuxiliaryThreads(auxiliary_threads);
 }
 
 
@@ -248,14 +248,17 @@ int ScienceKitCarrier::beginAnalogInput(){
 
 void ScienceKitCarrier::updateAnalogInput(const uint8_t input_to_update){
   if ((input_to_update==UPDATE_INPUT_A)||(input_to_update==UPDATE_ALL)){
-    /*   WIP
+    
     if (!getExternalTemperatureIsConnected()){
       inputA=analogRead(inputA_pin);
+      #ifdef ESP32
+        beginExternalTemperature();
+      #endif
     }
     else{
       inputA=ANALOGIN_DISABLED;
     } 
-    */
+    
   }
   if ((input_to_update==UPDATE_INPUT_B)||(input_to_update==UPDATE_ALL)){
     inputB=analogRead(inputB_pin);
@@ -472,13 +475,22 @@ float ScienceKitCarrier::getAirQuality(){
   return airquality;
 }
 
-#ifdef ARDUINO_NANO_RP2040_CONNECT
 void ScienceKitCarrier::threadBME688(){
   beginBME688();
   while(1){
     updateBME688();
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
     rtos::ThisThread::sleep_for(1000);
+    #endif
+    #ifdef ESP32
+    delay(1000);
+    #endif
   }
+}
+
+#ifdef ESP32
+void ScienceKitCarrier::freeRTOSInternalTemperature(void * pvParameters){
+  ((ScienceKitCarrier*) pvParameters)->threadBME688();
 }
 #endif
 
@@ -580,10 +592,9 @@ float ScienceKitCarrier::getMagneticFieldZ(){
 
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 void ScienceKitCarrier::delay(unsigned long t){
-  rtos::ThisThread::sleep_for(t);
+    rtos::ThisThread::sleep_for(t);
 }
 #endif
-
 
 
 /********************************************************************/
@@ -745,7 +756,6 @@ bool ScienceKitCarrier::getUltrasonicIsConnected(){
 /********************************************************************/
 //WIP
 
-#ifdef ARDUINO_NANO_RP2040_CONNECT
 int ScienceKitCarrier::beginExternalTemperature(){
   new (&ow) OneWireNg_CurrentPlatform(OW_PIN, false);
   DSTherm drv(ow);
@@ -754,8 +764,14 @@ int ScienceKitCarrier::beginExternalTemperature(){
 
 void ScienceKitCarrier::updateExternalTemperature(){
   float temperature;
-  pinMode(OW_PIN,INPUT);
   
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    pinMode(OW_PIN,INPUT);
+  #endif
+  #ifdef ESP32
+    pinMode(INPUTA_PIN,INPUT);
+  #endif
+
   DSTherm drv(ow);
   drv.convertTempAll(DSTherm::MAX_CONV_TIME, false);  
 
@@ -795,11 +811,19 @@ void ScienceKitCarrier::threadExternalTemperature(){
   while(1){
     updateExternalTemperature();
     updateAnalogInput(UPDATE_INPUT_A);
-    rtos::ThisThread::sleep_for(1000);
+
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
+      rtos::ThisThread::sleep_for(1000);
+    #endif
+    #ifdef ESP32
+      delay(1000);
+    #endif
   }
 }
-#endif
 
+void ScienceKitCarrier::freeRTOSExternalTemperature(void * pvParameters){
+  ((ScienceKitCarrier*) pvParameters)->threadExternalTemperature();
+}
 
 
 /********************************************************************/
@@ -845,29 +869,34 @@ uint ScienceKitCarrier::getMicrophoneRMS(){
 /********************************************************************/
 /*                              Threads                             */
 /********************************************************************/
-#ifdef ARDUINO_NANO_RP2040_CONNECT
 
 void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
   //thread_activity_led->start(mbed::callback(this, &ScienceKitCarrier::threadActivityLed));    //left for legacy on prototypes and maybe future implementations
-
   // start bme688 thread
   if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_INTERNAL_AMBIENT_SENSOR)){
     if (!thread_bme_is_running){
-      thread_update_bme->start(mbed::callback(this, &ScienceKitCarrier::threadBME688)); 
+      #ifdef ARDUINO_NANO_RP2040_CONNECT
+        thread_update_bme->start(mbed::callback(this, &ScienceKitCarrier::threadBME688)); 
+      #endif
+      #ifdef ESP32
+        xTaskCreatePinnedToCore(this->freeRTOSInternalTemperature, "update_internal_temperature", 10000, this, 1, &thread_internal_temperature, INTERNAL_TEMPERATURE_CORE);
+      #endif
     }
     thread_bme_is_running=true;
   }
-
   // start ds18b20 thread
   if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_EXTERNAL_AMBIENT_SENSOR)){
     if (!thread_ext_temperature_is_running){
-      thread_external_temperature->start(mbed::callback(this, &ScienceKitCarrier::threadExternalTemperature));
+      #ifdef ARDUINO_NANO_RP2040_CONNECT
+        thread_external_temperature->start(mbed::callback(this, &ScienceKitCarrier::threadExternalTemperature));
+      #endif
+      #ifdef ESP32
+        xTaskCreatePinnedToCore(this->freeRTOSExternalTemperature, "update_external_temperature", 10000, this, 1, &thread_external_temperature, EXTERNAL_TEMPERATURE_CORE);
+      #endif
     }
     thread_ext_temperature_is_running=true;
   }
 }
-
-#endif
 
 
 /***
