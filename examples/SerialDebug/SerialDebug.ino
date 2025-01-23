@@ -2,11 +2,14 @@
 
 ScienceKitCarrier science_kit;
 
+TaskHandle_t update_task;
+
+
 void setup() {
   Serial.begin(115200);
-  science_kit.begin(NO_AUXILIARY_THREADS);
-  science_kit.beginBME688();
+  science_kit.begin(START_AUXILIARY_THREADS);
 }
+
 
 void loop() {
   science_kit.update(ROUND_ROBIN_ENABLED);
@@ -59,10 +62,6 @@ void loop() {
   Serial.print(science_kit.getResistance());
   Serial.print("\t|| ");
 
-
-
-
-  science_kit.updateBME688();
   Serial.print(science_kit.getTemperature());
   Serial.print("\t");
   Serial.print(science_kit.getPressure());
@@ -72,15 +71,11 @@ void loop() {
   Serial.print(science_kit.getAirQuality());
   Serial.print("\t|| ");
 
-
-
-
-
-
+  Serial.print(science_kit.getExternalTemperature());
+  Serial.print("\t");
+  Serial.print(science_kit.getExternalTemperatureIsConnected());
+  Serial.print("\t|| ");
 
   Serial.print("\n");
-
-  //science_kit.updateAPDS();
-  //Serial.println(science_kit.getProximity());
   delay(10);
 }
