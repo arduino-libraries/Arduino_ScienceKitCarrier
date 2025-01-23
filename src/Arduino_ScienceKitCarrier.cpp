@@ -821,9 +821,11 @@ void ScienceKitCarrier::threadExternalTemperature(){
   }
 }
 
+#ifdef ESP32
 void ScienceKitCarrier::freeRTOSExternalTemperature(void * pvParameters){
   ((ScienceKitCarrier*) pvParameters)->threadExternalTemperature();
 }
+#endif
 
 
 /********************************************************************/
