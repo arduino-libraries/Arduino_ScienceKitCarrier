@@ -41,17 +41,18 @@
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 #include "../../OneWireNg/src/platform/OneWireNg_PicoRP2040.h"  // forces to use gpio instead PIO hw
 #define OneWireNg_CurrentPlatform OneWireNg_PicoRP2040
+#endif
+#ifdef ESP32
+#include "OneWireNg_CurrentPlatform.h"
+#endif
 #include "drivers/DSTherm.h"
 #include "utils/Placeholder.h"
-#endif
 
 
 #include "./utils/function_generator_controller.h"
 #include "./utils/Arduino_ScienceKitCarrier_definitions.h"
 
-#ifdef ARDUINO_NANO_RP2040_CONNECT
 static  Placeholder<OneWireNg_CurrentPlatform> ow;
-#endif
 
 
 class ScienceKitCarrier{
@@ -101,6 +102,11 @@ class ScienceKitCarrier{
     rtos::Thread * thread_external_temperature;
     #endif
 
+    #ifdef ESP32
+    TaskHandle_t thread_internal_temperature;
+    TaskHandle_t thread_external_temperature;
+    #endif
+
     bool thread_bme_is_running;
     bool thread_ext_temperature_is_running;
 
@@ -111,15 +117,12 @@ class ScienceKitCarrier{
 
     int begin(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
     void update(const bool roundrobin=false);  // this makes update on: analog in, imu, apds, ina, resistance, round robin enables one sensor update
-    #ifdef ARDUINO_NANO_RP2040_CONNECT
+    
     void startAuxiliaryThreads(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
-    #endif
-
 
     #ifdef ARDUINO_NANO_RP2040_CONNECT
     void delay(unsigned long t); // you must use this instead delay, due threads usage
     #endif
-
 
     /* Blink red alert */
     void errorTrap(const int error_code=0);
@@ -174,8 +177,9 @@ class ScienceKitCarrier{
     float getPressure();          // hPascal
     float getHumidity();          // Percentage
     float getAirQuality();        // index, if good it is 25.0
-    #ifdef ARDUINO_NANO_RP2040_CONNECT
     void threadBME688();          // thread used to update BME688 automatically in multithread mode
+    #ifdef ESP32
+    static void freeRTOSInternalTemperature(void * pvParameters);
     #endif
 
 
@@ -222,12 +226,13 @@ class ScienceKitCarrier{
 
 
     /* External temperature probe - Dallas DS18B20 */
-    #ifdef ARDUINO_NANO_RP2040_CONNECT
     int beginExternalTemperature();
     void updateExternalTemperature();
     float getExternalTemperature();     // celsius
     bool getExternalTemperatureIsConnected();
     void threadExternalTemperature();
+    #ifdef ESP32
+    static void freeRTOSExternalTemperature(void * pvParameters);
     #endif
 
     #ifdef ARDUINO_NANO_RP2040_CONNECT
