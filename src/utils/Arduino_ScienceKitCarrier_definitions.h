@@ -68,6 +68,9 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #endif
 #define EXTERNAL_TEMPERATURE_DISABLED -273.15; // absolute zero xD
 
+// Ultrasonic sensor
+#define ULTRASONIC_ADDRESS 0x57
+
 // Microphone - PDM on Arduino Nano RP2040 Connect
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 #define MICROPHONE_BUFFER_SIZE 512
@@ -111,7 +114,6 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define ULTRASONIC_CORE 1
 #endif
 
-#define ULTRASONIC_ADDRESS 0x57
 
 
 // Servos

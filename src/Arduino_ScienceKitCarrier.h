@@ -60,10 +60,8 @@ static  Placeholder<OneWireNg_CurrentPlatform> ow;
 #endif
 
 #ifdef ESP32
-#define wire_lock while (!xSemaphoreTake(wire_semaphore, 5)){}
+#define wire_lock while(!xSemaphoreTake(wire_semaphore, 5)){}
 #define wire_unlock xSemaphoreGive(wire_semaphore)
-//#define wire_lock delay(1) 
-//#define wire_unlock delay(1)
 #endif
 
 
