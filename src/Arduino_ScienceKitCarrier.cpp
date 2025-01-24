@@ -34,6 +34,7 @@ ScienceKitCarrier::ScienceKitCarrier(){
   inputA=0;
   inputB=0;
   timer_inputA = 0;
+  board_resolution = BOARD_RESOLUTION;
 
   apds9960 = new APDS9960(Wire,INT_APDS9960);
   proximity=0;
@@ -235,6 +236,9 @@ void ScienceKitCarrier::update(const bool roundrobin){
 
 
 
+
+
+
 /********************************************************************/
 /*                          Analog Inputs                           */
 /********************************************************************/
@@ -249,7 +253,7 @@ void ScienceKitCarrier::updateAnalogInput(const uint8_t input_to_update){
   if ((input_to_update==UPDATE_INPUT_A)||(input_to_update==UPDATE_ALL)){
     
     if (!getExternalTemperatureIsConnected()){
-      inputA=analogRead(inputA_pin);
+      inputA=analogRead(inputA_pin)>>board_resolution;
       #ifdef ESP32
         beginExternalTemperature();
       #endif
@@ -260,7 +264,7 @@ void ScienceKitCarrier::updateAnalogInput(const uint8_t input_to_update){
     
   }
   if ((input_to_update==UPDATE_INPUT_B)||(input_to_update==UPDATE_ALL)){
-    inputB=analogRead(inputB_pin);
+    inputB=analogRead(inputB_pin)>>board_resolution;
   }
 }
 
@@ -279,12 +283,14 @@ int ScienceKitCarrier::getInputB(){
 /********************************************************************/
 /*                             APDS9960                             */
 /********************************************************************/
+
 int ScienceKitCarrier::beginAPDS(){
   if (!apds9960->begin()) {
     return ERR_BEGIN_APDS;
   }
   return 0;
 }
+
 void ScienceKitCarrier::updateAPDS(){
   wire_lock;
   if (apds9960->proximityAvailable()){
@@ -406,8 +412,6 @@ float ScienceKitCarrier::getResistanceMeasureVolts(){
   #endif
   return value;
 }
-
-
 
 float ScienceKitCarrier::getResistance(){
   return resistance;
@@ -590,6 +594,7 @@ float ScienceKitCarrier::getMagneticFieldZ(){
 
 
 
+
 /********************************************************************/
 /*                   LEDs: errors and status                      */
 /********************************************************************/
@@ -680,6 +685,9 @@ void ScienceKitCarrier::freeRTOSStatusLed(void * pvParameters){
 #endif
   
 
+
+
+
 /********************************************************************/
 /*                  Function Generator Controller                   */
 /********************************************************************/
@@ -719,6 +727,8 @@ uint8_t ScienceKitCarrier::getRange1(){
 uint8_t ScienceKitCarrier::getRange2(){
   return range2;
 }
+
+
 
 
 
@@ -802,10 +812,13 @@ void ScienceKitCarrier::freeRTOSUltrasonic(void * pvParameters){
 }
 #endif
 
+
+
+
+
 /********************************************************************/
 /*                    External Temperature Probe                    */
 /********************************************************************/
-//WIP
 
 int ScienceKitCarrier::beginExternalTemperature(){
   new (&ow) OneWireNg_CurrentPlatform(OW_PIN, false);
@@ -854,7 +867,6 @@ void ScienceKitCarrier::updateExternalTemperature(){
   }
 }
 
-
 float ScienceKitCarrier::getExternalTemperature(){
   return external_temperature;
 }
@@ -880,9 +892,13 @@ void ScienceKitCarrier::freeRTOSExternalTemperature(void * pvParameters){
 #endif
 
 
+
+
+
 /********************************************************************/
 /*                             Microphone                           */
 /********************************************************************/
+
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 int ScienceKitCarrier::beginMicrophone(){
   PDM.setGain(50);
@@ -916,6 +932,7 @@ uint ScienceKitCarrier::getMicrophoneRMS(){
   return microphone_rms;
 }
 #endif
+
 
 
 
@@ -974,6 +991,9 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
   } 
   #endif
 }
+
+
+
 
 
 /***

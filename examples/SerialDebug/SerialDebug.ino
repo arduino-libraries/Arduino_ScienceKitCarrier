@@ -1,21 +1,15 @@
 /*
-  This file is part of the Arduino_ScienceKitCarrier library.
-  Copyright (c) 2023 Arduino SA. All rights reserved.
+    This file is part of the Arduino_ScienceKitCarrier library.
 
-  This library is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation; either
-  version 2.1 of the License, or (at your option) any later version.
+    Copyright (c) 2024 Arduino SA
 
-  This library is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Lesser General Public License for more details.
-
-  You should have received a copy of the GNU Lesser General Public
-  License along with this library; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    This Source Code Form is subject to the terms of the Mozilla Public
+    License, v. 2.0. If a copy of the MPL was not distributed with this
+    file, You can obtain one at http://mozilla.org/MPL/2.0/.
+    
 */
+
+// This examples print all data from Arduino Science Kit R3
 
 #include "Arduino_ScienceKitCarrier.h"
 
@@ -24,6 +18,7 @@ ScienceKitCarrier science_kit;
 
 void setup() {
   Serial.begin(115200);
+  while(!Serial);
   science_kit.begin(START_AUXILIARY_THREADS);
 }
 
@@ -93,6 +88,20 @@ void loop() {
   Serial.print(science_kit.getExternalTemperatureIsConnected());
   Serial.print("\t|| ");
 
+  Serial.print(science_kit.getUltrasonicIsConnected());
+  Serial.print("\t");
+  Serial.print(science_kit.getDistance());
+  Serial.print("\t");
+  Serial.print(science_kit.getTravelTime());
+  Serial.print("\t|| ");
+
+  // Microphone is only availble on Arduino Nano RP2040 Connect edition
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+  Serial.print(science_kit.getMicrophoneRMS());
+  Serial.print("\t|| ");
+  #endif
+  
   Serial.print("\n");
+  
   delay(10);
 }
