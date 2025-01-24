@@ -94,9 +94,14 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 
 
 // Led
-#define ACTIVITY_LED_OFF 0
-#define ACTIVITY_LED_BLE 1
-#define ACTIVITY_LED_PAIRING 2
+#define STATUS_LED_OFF 0
+#define STATUS_LED_BLE 1
+#define STATUS_LED_PAIRING 2
+#define STATUS_LED_ADD_EXT_TEMP 3
+#define STATUS_LED_ADD_ULTRASONIC 4
+#define STATUS_LED_RM_EXT_TEMP 5
+#define STATUS_LED_RM_ULTRASONIC 6
+
 
 // Update
 #define ROUND_ROBIN_ENABLED 1
@@ -107,11 +112,14 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define START_INTERNAL_AMBIENT_SENSOR 2     // bme688
 #define START_EXTERNAL_AMBIENT_SENSOR 3     // ds18b20
 #define START_ULTRASONIC 4                  // grove I2C ultrasonic sensor
+#define START_STATUS_LED 5
+#
 
 #ifdef ESP32 // 1 user, 0 secondary core
 #define EXTERNAL_TEMPERATURE_CORE 1
 #define INTERNAL_TEMPERATURE_CORE 0
-#define ULTRASONIC_CORE 1
+#define ULTRASONIC_CORE 0
+#define LED_CORE 0
 #endif
 
 
