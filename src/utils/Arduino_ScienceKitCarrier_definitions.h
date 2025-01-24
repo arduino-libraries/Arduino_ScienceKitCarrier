@@ -103,12 +103,15 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define START_AUXILIARY_THREADS 1
 #define START_INTERNAL_AMBIENT_SENSOR 2     // bme688
 #define START_EXTERNAL_AMBIENT_SENSOR 3     // ds18b20
+#define START_ULTRASONIC 4                  // grove I2C ultrasonic sensor
 
+#ifdef ESP32 // 1 user, 0 secondary core
+#define EXTERNAL_TEMPERATURE_CORE 1
+#define INTERNAL_TEMPERATURE_CORE 0
+#define ULTRASONIC_CORE 1
+#endif
 
-#define EXTERNAL_TEMPERATURE_CORE 1 // user
-#define INTERNAL_TEMPERATURE_CORE 0 // other
-
-
+#define ULTRASONIC_ADDRESS 0x57
 
 
 // Servos
