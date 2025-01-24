@@ -624,14 +624,10 @@ void ScienceKitCarrier::setStatusLed(const int led_state){
       enable_led_blue = false;
       break;
     case STATUS_LED_BLE:
-      enable_led_red = false;
-      enable_led_green = false;
       enable_led_blue = true;
       led_time_base = 20;
       break;
     case STATUS_LED_PAIRING:
-      enable_led_red = false;
-      enable_led_green = false;
       enable_led_blue = true;
       led_time_base = 5;
       break;
