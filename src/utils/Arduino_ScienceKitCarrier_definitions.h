@@ -37,6 +37,8 @@
 
 // APDS9960
 #define INT_APDS9960 9
+#define APDS9960_VERSION 0
+#define APDS9999_VERSION 1
 
 // INA
 const uint32_t SHUNT_MICRO_OHM{100000};    // check schematic R20

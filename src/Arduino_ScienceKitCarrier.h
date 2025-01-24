@@ -31,6 +31,7 @@
 
 #include <Wire.h>
 #include "Arduino_APDS9960.h"
+#include "Arduino_APDS9999.h"
 #include "INA.h"
 
 #include "bsec2.h"
@@ -75,7 +76,9 @@ class ScienceKitCarrier{
     uint8_t timer_inputA;
 
     APDS9960 * apds9960;
+    Arduino_APDS9999 * apds9999;
     int r,g,b,c, proximity;
+    int color_sensor_used;
 
     INA_Class * ina;
     float voltage, current;
