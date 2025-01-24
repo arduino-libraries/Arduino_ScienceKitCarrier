@@ -90,7 +90,7 @@ ScienceKitCarrier::ScienceKitCarrier(){
   #endif
   
   #ifdef ARDUINO_NANO_RP2040_CONNECT
-    thread_activity_led = new rtos::Thread();
+    thread_status_led = new rtos::Thread();
     thread_update_bme = new rtos::Thread();
     thread_external_temperature = new rtos::Thread();
     thread_ultrasonic = new rtos::Thread();
@@ -103,8 +103,13 @@ ScienceKitCarrier::ScienceKitCarrier(){
   thread_bme_is_running = false;
   thread_ext_temperature_is_running = false;
   thread_ultrasonic_is_running = false;
+  thread_led_is_running = false;
 
-  activity_led_state = ACTIVITY_LED_OFF;
+  status_led_state = STATUS_LED_OFF;
+  enable_led_red = false;
+  enable_led_green = false;
+  enable_led_blue = false;
+  led_time_base = 20;
 }
 
 
@@ -582,19 +587,11 @@ float ScienceKitCarrier::getMagneticFieldZ(){
   return magnetic_field[2];
 }
 
-/********************************************************************/
-/*                             delay                                */
-/********************************************************************/
 
-#ifdef ARDUINO_NANO_RP2040_CONNECT
-void ScienceKitCarrier::delay(unsigned long t){
-    rtos::ThisThread::sleep_for(t);
-}
-#endif
 
 
 /********************************************************************/
-/*                   LEDs: errors and activity                      */
+/*                   LEDs: errors and status                      */
 /********************************************************************/
 
 void ScienceKitCarrier::errorTrap(const int error_code){
@@ -619,59 +616,69 @@ void ScienceKitCarrier::errorTrap(const int error_code){
   }
 }
 
-#ifdef ARDUINO_NANO_RP2040_CONNECT
-void ScienceKitCarrier::threadActivityLed(){
-  while(1){
-    switch (activity_led_state){
-      case ACTIVITY_LED_OFF:
-        digitalWrite(LEDB,LOW);
-        digitalWrite(LEDG,LOW);
-        break;
-      case ACTIVITY_LED_BLE:               // blue breathing effect
-        digitalWrite(LEDG, LOW);
-        for(int i=255; i>0; i--){
-          analogWrite(LEDB, i);
-          rtos::ThisThread::sleep_for(10);
-        }
-        for(int i=0; i<255; i++){
-          analogWrite(LEDB, i);
-          rtos::ThisThread::sleep_for(10);
-        }
-        rtos::ThisThread::sleep_for(100);
-        break;
-      case ACTIVITY_LED_PAIRING:            // blue-green flashing
-        for(int i = 255; i>0; i=i-2){
-          analogWrite(LEDG,i);
-          rtos::ThisThread::sleep_for(1);
-        }
-        for(int i = 0; i<255; i=i+2){
-          analogWrite(LEDG,i);
-          rtos::ThisThread::sleep_for(1);
-        }
-        for(int i = 255; i>0; i=i-2){
-          analogWrite(LEDB,i);
-          rtos::ThisThread::sleep_for(1);
-        }
-        for(int i = 0; i<255; i=i+2){
-          analogWrite(LEDB,i);
-          rtos::ThisThread::sleep_for(1);
-        }
-        digitalWrite(LEDG, LOW);
-        digitalWrite(LEDB, LOW);
-        break;
-      default:                              // any other value turns off leds
-        digitalWrite(LEDB,LOW);
-        digitalWrite(LEDG,LOW);
-    }  
+#ifdef ESP32
+void ScienceKitCarrier::setStatusLed(const int led_state){
+  switch (led_state){
+    case STATUS_LED_OFF:
+      enable_led_red = false;
+      enable_led_green = false;
+      enable_led_blue = false;
+      break;
+    case STATUS_LED_BLE:
+      enable_led_red = false;
+      enable_led_green = false;
+      enable_led_blue = true;
+      led_time_base = 20;
+      break;
+    case STATUS_LED_PAIRING:
+      enable_led_red = false;
+      enable_led_green = false;
+      enable_led_blue = true;
+      led_time_base = 5;
+      break;
+    case STATUS_LED_ADD_EXT_TEMP:
+      enable_led_red = true;
+      break;
+    case STATUS_LED_ADD_ULTRASONIC:
+      enable_led_green = true;
+      break;
+    case STATUS_LED_RM_EXT_TEMP:
+      enable_led_red = false;
+      break;
+    case STATUS_LED_RM_ULTRASONIC:
+      enable_led_green = false;
+      break;
+    default:
+      enable_led_red = false;
+      enable_led_green = false;
+      enable_led_blue = false;
   }
 }
-#endif
 
-void ScienceKitCarrier::setActivityLed(const int led_state){
-  activity_led_state=led_state;
+void ScienceKitCarrier::threadStatusLed(){
+  unsigned long animation_time = millis();
+  int brightness = 0;
+  int fadeAmount = 5;
+  while(1){
+    while(millis()-animation_time>led_time_base){
+      animation_time = millis();
+      analogWrite(LED_RED, 255-(0.125*brightness)*enable_led_red);
+      analogWrite(LED_GREEN, 255-brightness*enable_led_green);
+      analogWrite(LED_BLUE, 255-brightness*enable_led_blue);
+      brightness = brightness + fadeAmount;
+      if (brightness <= 0 || brightness >= 255) {
+        fadeAmount = -fadeAmount;
+      }
+    }
+    delay(5);
+  }
 }
 
-
+void ScienceKitCarrier::freeRTOSStatusLed(void * pvParameters){
+  ((ScienceKitCarrier*) pvParameters)->threadStatusLed();
+}
+#endif
+  
 
 /********************************************************************/
 /*                  Function Generator Controller                   */
@@ -726,6 +733,9 @@ void ScienceKitCarrier::updateUltrasonic(){
   if (ultrasonic_data==4294967295){
     ultrasonic_measure = -1.0;
     ultrasonic_is_connected = false;
+    #ifdef ESP32
+      setStatusLed(STATUS_LED_RM_ULTRASONIC);
+    #endif
   }
   else{
     ultrasonic_measure = float(ultrasonic_data) / 1000.0;
@@ -733,6 +743,9 @@ void ScienceKitCarrier::updateUltrasonic(){
       ultrasonic_measure = 4500.0;
     }
     ultrasonic_is_connected = true;
+    #ifdef ESP32
+      setStatusLed(STATUS_LED_ADD_ULTRASONIC);
+    #endif
   }
 
   if (ultrasonic_is_connected){
@@ -819,10 +832,16 @@ void ScienceKitCarrier::updateExternalTemperature(){
   if (ec == OneWireNg::EC_SUCCESS) {
     if (scrpd->getAddr()!=15){
       external_temperature_is_connected=false;
+      #ifdef ESP32
+        setStatusLed(STATUS_LED_RM_EXT_TEMP);
+      #endif
       external_temperature = EXTERNAL_TEMPERATURE_DISABLED;
     }
     else{
       external_temperature_is_connected=true;
+      #ifdef ESP32
+        setStatusLed(STATUS_LED_ADD_EXT_TEMP);
+      #endif
       long temp = scrpd->getTemp();
       int sign=1;
       if (temp < 0) {
@@ -906,7 +925,6 @@ uint ScienceKitCarrier::getMicrophoneRMS(){
 /********************************************************************/
 
 void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
-  //thread_activity_led->start(mbed::callback(this, &ScienceKitCarrier::threadActivityLed));    //left for legacy on prototypes and maybe future implementations
   // start bme688 thread
   if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_INTERNAL_AMBIENT_SENSOR)){
     if (!thread_bme_is_running){
@@ -945,6 +963,16 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
     }
     thread_ultrasonic_is_running = true;
   }
+
+  // start status led
+  #ifdef ESP32
+  if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_STATUS_LED)){
+    if (!thread_led_is_running){
+      xTaskCreatePinnedToCore(this->freeRTOSStatusLed, "update_led", 10000, this, 1, &thread_led, LED_CORE);
+    }
+    thread_led_is_running = true;
+  } 
+  #endif
 }
 
 

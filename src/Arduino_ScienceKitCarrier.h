@@ -107,7 +107,7 @@ class ScienceKitCarrier{
     static const char channels = MICROPHONE_CHANNELS;
     static const int frequency = MICROPHONE_FREQUENCY;
 
-    rtos::Thread * thread_activity_led;
+    rtos::Thread * thread_status_led;
     rtos::Thread * thread_update_bme;
     rtos::Thread * thread_external_temperature;
     rtos::Thread * thread_ultrasonic;
@@ -118,14 +118,18 @@ class ScienceKitCarrier{
     TaskHandle_t thread_internal_temperature;
     TaskHandle_t thread_external_temperature;
     TaskHandle_t thread_ultrasonic;
+    TaskHandle_t thread_led;
     SemaphoreHandle_t wire_semaphore;
     #endif
 
     bool thread_bme_is_running;
     bool thread_ext_temperature_is_running;
     bool thread_ultrasonic_is_running;
+    bool thread_led_is_running;
 
-    uint8_t activity_led_state;
+    uint8_t status_led_state;
+    bool enable_led_red, enable_led_green, enable_led_blue;
+    unsigned long led_time_base;
 
     void requestUltrasonicUpdate();
     void retriveUltrasonicUpdate();
@@ -138,18 +142,15 @@ class ScienceKitCarrier{
 
     void startAuxiliaryThreads(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
 
-    #ifdef ARDUINO_NANO_RP2040_CONNECT
-    void delay(unsigned long t); // you must use this instead delay, due threads usage
-    #endif
-
     /* Blink red alert */
     void errorTrap(const int error_code=0);
 
-    /* Activity led */
-    #ifdef ARDUINO_NANO_RP2040_CONNECT
-    void threadActivityLed();
+    /* Status led */
+    #ifdef ESP32
+    void setStatusLed(const int led_state=STATUS_LED_OFF);
+    void threadStatusLed();
+    static void freeRTOSStatusLed(void * pvParameters);
     #endif
-    void setActivityLed(const int led_state=ACTIVITY_LED_OFF);
 
 
 
