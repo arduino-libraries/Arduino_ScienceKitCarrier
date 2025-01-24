@@ -37,6 +37,7 @@ ScienceKitCarrier::ScienceKitCarrier(){
   board_resolution = BOARD_RESOLUTION;
 
   apds9960 = new APDS9960(Wire,INT_APDS9960);
+  apds9999 = new Arduino_APDS9999(Wire);
   proximity=0;
   r=0;
   g=0;
@@ -279,19 +280,53 @@ int ScienceKitCarrier::getInputB(){
 /********************************************************************/
 
 int ScienceKitCarrier::beginAPDS(){
-  if (!apds9960->begin()) {
-    return ERR_BEGIN_APDS;
+  if (!apds9999->begin()){
+    if (!apds9960->begin()) {
+      return ERR_BEGIN_APDS;
+    }
+    else{
+      color_sensor_used = APDS9960_VERSION;
+    }
   }
+  else{
+    apds9999->enableColorSensor();
+    apds9999->enableProximitySensor();
+    apds9999->setGain(APDS9999_GAIN_1X);
+    apds9999->setLSResolution(APDS9999_LS_RES_16B);
+    apds9999->setLSRate(APDS9999_LS_RATE_25MS);
+    color_sensor_used = APDS9999_VERSION;
+  }
+  #ifdef ESP32
+    for(int i=0; i<=color_sensor_used; i++){
+      digitalWrite(LED_GREEN, LOW);
+      delay(100);
+      digitalWrite(LED_GREEN, HIGH);
+      delay(100);
+    }
+    digitalWrite(LED_GREEN, HIGH);
+  #endif
   return 0;
 }
 
 void ScienceKitCarrier::updateAPDS(){
   wire_lock;
-  if (apds9960->proximityAvailable()){
-    proximity=apds9960->readProximity();
+  if (color_sensor_used==APDS9960_VERSION){
+    if (apds9960->proximityAvailable()){
+      proximity=apds9960->readProximity();
+    }
+    if (apds9960->colorAvailable()){
+      apds9960->readColor(r,g,b,c);
+    }
   }
-  if (apds9960->colorAvailable()){
-    apds9960->readColor(r,g,b,c);
+  if (color_sensor_used==APDS9999_VERSION){
+    r = apds9999->getRed()*4097/65535.0;
+    g = apds9999->getGreen()*4097/262144.0;
+    b = apds9999->getBlue()*4097/131072.0;
+    c = apds9999->getIR()*4097/4096.0;
+    proximity = 255 - apds9999->getProximity();
+    if (proximity>255){
+      proximity = 0;
+    }
   }
   wire_unlock;
 }
