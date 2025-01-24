@@ -127,6 +127,7 @@ class ScienceKitCarrier{
     bool thread_ext_temperature_is_running;
     bool thread_ultrasonic_is_running;
     bool thread_led_is_running;
+    bool thread_update_is_running;
 
     uint8_t status_led_state;
     bool enable_led_red, enable_led_green, enable_led_blue;

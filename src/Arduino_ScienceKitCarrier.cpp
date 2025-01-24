@@ -122,20 +122,14 @@ ScienceKitCarrier::ScienceKitCarrier(){
 /********************************************************************/
 
 int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
-  pinMode(LEDR,OUTPUT);
-  pinMode(LEDG,OUTPUT);
-  pinMode(LEDB,OUTPUT);
-
-  #ifdef ARDUINO_NANO_RP2040_CONNECT
-  digitalWrite(LEDR,LOW);
-  digitalWrite(LEDG,LOW);
-  digitalWrite(LEDB,LOW);
-  #endif
 
   #ifdef ESP32
-  digitalWrite(LEDR,HIGH);
-  digitalWrite(LEDG,HIGH);
-  digitalWrite(LEDB,HIGH);
+    pinMode(LED_RED,OUTPUT);
+    pinMode(LED_GREEN,OUTPUT);
+    pinMode(LED_BLUE,OUTPUT);
+    digitalWrite(LED_RED,HIGH);
+    digitalWrite(LED_GREEN,HIGH);
+    digitalWrite(LED_BLUE,HIGH);
   #endif
 
 
