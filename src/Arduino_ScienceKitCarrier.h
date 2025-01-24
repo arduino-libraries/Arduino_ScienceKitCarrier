@@ -36,7 +36,6 @@
 #include "bsec2.h"
 
 #include "Arduino_BMI270_BMM150.h"
-#include "Arduino_GroveI2C_Ultrasonic.h"
 
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 #include "../../OneWireNg/src/platform/OneWireNg_PicoRP2040.h"  // forces to use gpio instead PIO hw
@@ -53,6 +52,19 @@
 #include "./utils/Arduino_ScienceKitCarrier_definitions.h"
 
 static  Placeholder<OneWireNg_CurrentPlatform> ow;
+
+
+#ifdef ARDUINO_NANO_RP2040_CONNECT
+#define wire_lock wire_mutex.lock()
+#define wire_unlock wire_mutex.unlock()
+#endif
+
+#ifdef ESP32
+#define wire_lock while (!xSemaphoreTake(wire_semaphore, 5)){}
+#define wire_unlock xSemaphoreGive(wire_semaphore)
+//#define wire_lock delay(1) 
+//#define wire_unlock delay(1)
+#endif
 
 
 class ScienceKitCarrier{
@@ -84,8 +96,8 @@ class ScienceKitCarrier{
     FunctionGeneratorController * function_generator_controller;
     uint8_t frequency1, frequency2, phase1, phase2, range1, range2;
 
-    Arduino_GroveI2C_Ultrasonic * ultrasonic;
-    float distance, travel_time;
+    float ultrasonic_measure,distance, travel_time;
+    uint32_t ultrasonic_data;
     bool ultrasonic_is_connected;
 
     bool external_temperature_is_connected;
@@ -100,24 +112,32 @@ class ScienceKitCarrier{
     rtos::Thread * thread_activity_led;
     rtos::Thread * thread_update_bme;
     rtos::Thread * thread_external_temperature;
+    rtos::Thread * thread_ultrasonic;
+    rtos::Mutex wire_mutex;
     #endif
 
     #ifdef ESP32
     TaskHandle_t thread_internal_temperature;
     TaskHandle_t thread_external_temperature;
+    TaskHandle_t thread_ultrasonic;
+    SemaphoreHandle_t wire_semaphore;
     #endif
 
     bool thread_bme_is_running;
     bool thread_ext_temperature_is_running;
+    bool thread_ultrasonic_is_running;
 
     uint8_t activity_led_state;
+
+    void requestUltrasonicUpdate();
+    void retriveUltrasonicUpdate();
 
   public:
     ScienceKitCarrier();
 
     int begin(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
     void update(const bool roundrobin=false);  // this makes update on: analog in, imu, apds, ina, resistance, round robin enables one sensor update
-    
+
     void startAuxiliaryThreads(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
 
     #ifdef ARDUINO_NANO_RP2040_CONNECT
@@ -217,11 +237,14 @@ class ScienceKitCarrier{
 
 
     /* Ultrasonic sensor */
-    int beginUltrasonic();
     void updateUltrasonic();
     float getDistance();        // meters
     float getTravelTime();      // microseconds
     bool getUltrasonicIsConnected();
+    void threadUltrasonic();
+    #ifdef ESP32
+    static void freeRTOSUltrasonic(void * pvParameters);
+    #endif
 
 
 

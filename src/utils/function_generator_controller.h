@@ -63,7 +63,6 @@ class FunctionGeneratorController{
     }
 
     void getData(uint8_t & f1, uint8_t & s1, uint8_t & p1, uint8_t & f2, uint8_t & s2, uint8_t & p2){
-      updateData();
       f1=data[0];
       s1=data[1];
       p1=data[2];

@@ -74,29 +74,36 @@ ScienceKitCarrier::ScienceKitCarrier(){
   range1=0;
   range2=0;
 
-  ultrasonic = new Arduino_GroveI2C_Ultrasonic();
-  distance=0.0;
-  travel_time=0.0;
+  ultrasonic_measure = 0.0;
+  ultrasonic_data = 0;
+  distance = 0.0;
+  travel_time = 0.0;
   ultrasonic_is_connected=false;
 
   external_temperature=EXTERNAL_TEMPERATURE_DISABLED;
   external_temperature_is_connected=false;
 
   #ifdef ARDUINO_NANO_RP2040_CONNECT
-  microphone_rms=0;
-  rms=0;
+    microphone_rms=0;
+    rms=0;
   #endif
 
   round_robin_index=0;
   
   #ifdef ARDUINO_NANO_RP2040_CONNECT
-  thread_activity_led = new rtos::Thread();
-  thread_update_bme = new rtos::Thread();
-  thread_external_temperature = new rtos::Thread();
+    thread_activity_led = new rtos::Thread();
+    thread_update_bme = new rtos::Thread();
+    thread_external_temperature = new rtos::Thread();
+    thread_ultrasonic = new rtos::Thread();
+  #endif
+
+  #ifdef ARDUINO_ESP32
+    wire_semaphore = xSemaphoreCreateMutex();
   #endif
 
   thread_bme_is_running = false;
   thread_ext_temperature_is_running = false;
+  thread_ultrasonic_is_running = false;
 
   activity_led_state = ACTIVITY_LED_OFF;
 }
@@ -141,7 +148,6 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
     return ERR_BEGIN_INA;
   }
   
-
   // let's start resistance measurement
   if (beginResistance()!=0){
     return ERR_BEGIN_RESISTANCE;
@@ -164,14 +170,7 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
   }
   #endif
 
-  // let's start ultrasonic and check if it is connected
-  /* WIP
-  if (beginUltrasonic()!=0){
-    return ERR_BEGIN_ULTRASONIC;
-  }
-  */
-
-  // let's start bme688 and external ds18b20 probe
+  // let's start bme688, external ds18b20 probe and ultrasonic sensor
   startAuxiliaryThreads(auxiliary_threads);
 }
 
@@ -194,12 +193,8 @@ void ScienceKitCarrier::update(const bool roundrobin){
     updateResistance();
     updateIMU();
     updateFrequencyGeneratorData();
-
-    // update external
-    //WIP updateUltrasonic();
   }
   else{
-    //WIP
     switch (round_robin_index){
       case 0: 
         if (thread_ext_temperature_is_running){
@@ -218,7 +213,6 @@ void ScienceKitCarrier::update(const bool roundrobin){
         break;
       case 3:
         updateResistance();                  // about 1ms
-        // WIP updateUltrasonic();                  // requires about 5ms when not connected
         break;
       case 4:
         updateIMU();                         // heavy task, 13ms
@@ -287,12 +281,14 @@ int ScienceKitCarrier::beginAPDS(){
   return 0;
 }
 void ScienceKitCarrier::updateAPDS(){
+  wire_lock;
   if (apds9960->proximityAvailable()){
     proximity=apds9960->readProximity();
   }
   if (apds9960->colorAvailable()){
     apds9960->readColor(r,g,b,c);
   }
+  wire_unlock;
 }
 
 int ScienceKitCarrier::getProximity(){
@@ -337,9 +333,11 @@ int ScienceKitCarrier::beginINA(){
 }
 
 void ScienceKitCarrier::updateINA(){
+  wire_lock;
   voltage = ina->getBusMilliVolts(0);
-  voltage = voltage/1000.0;
   current = ina->getBusMicroAmps(0);
+  wire_unlock;
+  voltage = voltage/1000.0;
   current = current/1000000.0;
 }
 
@@ -479,12 +477,7 @@ void ScienceKitCarrier::threadBME688(){
   beginBME688();
   while(1){
     updateBME688();
-    #ifdef ARDUINO_NANO_RP2040_CONNECT
-    rtos::ThisThread::sleep_for(1000);
-    #endif
-    #ifdef ESP32
     delay(1000);
-    #endif
   }
 }
 
@@ -508,7 +501,9 @@ int ScienceKitCarrier::beginIMU(){
   }
   return 0;
 }
+
 void ScienceKitCarrier::updateIMU(){
+  wire_lock;
   if (imu->accelerationAvailable()){
     imu->readAcceleration(acceleration[0], acceleration[1], acceleration[2]);
     // change scale g -> m/s^2 and rotate the TF according the board symbol
@@ -530,6 +525,7 @@ void ScienceKitCarrier::updateIMU(){
     magnetic_field[1] = magnetic_field[1];
     magnetic_field[2] = magnetic_field[2];
   }
+  wire_unlock;
 }
 
 void ScienceKitCarrier::getAcceleration(float & x, float & y , float & z){
@@ -687,7 +683,9 @@ int ScienceKitCarrier::beginFrequencyGeneratorData(){
 }
 
 void ScienceKitCarrier::updateFrequencyGeneratorData(){
+  wire_lock;
   function_generator_controller->updateData();
+  wire_unlock;
   function_generator_controller->getData(frequency1, range1, phase1, frequency2, range2, phase2);
 }
 
@@ -721,20 +719,49 @@ uint8_t ScienceKitCarrier::getRange2(){
 /*                        Ultrasonic Sensor                         */
 /********************************************************************/
 
-int ScienceKitCarrier::beginUltrasonic(){
-  ultrasonic->begin();
-  updateUltrasonic();
-}
-
 void ScienceKitCarrier::updateUltrasonic(){
-  if (ultrasonic->checkConnection()){
-    ultrasonic_is_connected=true;
-    distance=ultrasonic->getMeters();
-    travel_time=ultrasonic->getTravelTime();
+  requestUltrasonicUpdate();
+  delay(120);
+  retriveUltrasonicUpdate();
+  if (ultrasonic_data==4294967295){
+    ultrasonic_measure = -1.0;
+    ultrasonic_is_connected = false;
   }
   else{
-    ultrasonic_is_connected=false;
+    ultrasonic_measure = float(ultrasonic_data) / 1000.0;
+    if (ultrasonic_measure>4500.0){
+      ultrasonic_measure = 4500.0;
+    }
+    ultrasonic_is_connected = true;
   }
+
+  if (ultrasonic_is_connected){
+    distance = ultrasonic_measure;
+    travel_time = ultrasonic_measure*2.0/0.343;
+  }
+  else{
+    distance = -1.0;
+    travel_time = -1.0;
+  }
+}
+
+void ScienceKitCarrier::requestUltrasonicUpdate(){
+  wire_lock;
+  Wire.beginTransmission((uint8_t)ULTRASONIC_ADDRESS);
+  Wire.write(0x01);
+  Wire.endTransmission();
+  wire_unlock;
+}
+
+void ScienceKitCarrier::retriveUltrasonicUpdate(){
+  wire_lock;
+  Wire.requestFrom((uint8_t)ULTRASONIC_ADDRESS,(uint8_t)3);
+  ultrasonic_data = Wire.read();
+  ultrasonic_data <<= 8;
+  ultrasonic_data |= Wire.read();
+  ultrasonic_data <<= 8;
+  ultrasonic_data |= Wire.read();
+  wire_unlock;
 }
 
 float ScienceKitCarrier::getDistance(){
@@ -749,7 +776,18 @@ bool ScienceKitCarrier::getUltrasonicIsConnected(){
   return ultrasonic_is_connected;
 }
 
+void ScienceKitCarrier::threadUltrasonic(){
+  while(1){
+    updateUltrasonic();
+    delay(200);
+  }
+}
 
+#ifdef ESP32
+void ScienceKitCarrier::freeRTOSUltrasonic(void * pvParameters){
+  ((ScienceKitCarrier*) pvParameters)->threadUltrasonic();
+}
+#endif
 
 /********************************************************************/
 /*                    External Temperature Probe                    */
@@ -812,12 +850,7 @@ void ScienceKitCarrier::threadExternalTemperature(){
     updateExternalTemperature();
     updateAnalogInput(UPDATE_INPUT_A);
 
-    #ifdef ARDUINO_NANO_RP2040_CONNECT
-      rtos::ThisThread::sleep_for(1000);
-    #endif
-    #ifdef ESP32
-      delay(1000);
-    #endif
+    delay(1000);
   }
 }
 
@@ -884,8 +917,9 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
         xTaskCreatePinnedToCore(this->freeRTOSInternalTemperature, "update_internal_temperature", 10000, this, 1, &thread_internal_temperature, INTERNAL_TEMPERATURE_CORE);
       #endif
     }
-    thread_bme_is_running=true;
+    thread_bme_is_running = true;
   }
+
   // start ds18b20 thread
   if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_EXTERNAL_AMBIENT_SENSOR)){
     if (!thread_ext_temperature_is_running){
@@ -896,7 +930,20 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
         xTaskCreatePinnedToCore(this->freeRTOSExternalTemperature, "update_external_temperature", 10000, this, 1, &thread_external_temperature, EXTERNAL_TEMPERATURE_CORE);
       #endif
     }
-    thread_ext_temperature_is_running=true;
+    thread_ext_temperature_is_running = true;
+  }
+
+  // start ultrasonic thread
+  if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_ULTRASONIC)){
+    if (!thread_ultrasonic_is_running){
+      #ifdef ARDUINO_NANO_RP2040_CONNECT
+        thread_ultrasonic->start(mbed::callback(this, &ScienceKitCarrier::threadUltrasonic));
+      #endif
+      #ifdef ESP32
+        xTaskCreatePinnedToCore(this->freeRTOSUltrasonic, "update_ultrasonic", 1024, this, 1, &thread_ultrasonic, ULTRASONIC_CORE);
+      #endif
+    }
+    thread_ultrasonic_is_running = true;
   }
 }
 
