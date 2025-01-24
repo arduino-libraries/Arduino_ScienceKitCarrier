@@ -300,6 +300,7 @@ int ScienceKitCarrier::beginAPDS(){
       digitalWrite(LED_GREEN, HIGH);
       delay(100);
     }
+    digitalWrite(LED_GREEN, HIGH);
   #endif
   return 0;
 }
