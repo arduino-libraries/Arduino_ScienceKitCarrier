@@ -295,9 +295,9 @@ int ScienceKitCarrier::beginAPDS(){
   }
   #ifdef ESP32
     for(int i=0; i<=color_sensor_used; i++){
-      analogWrite(LED_GREEN,64);
+      digitalWrite(LED_GREEN, 64);
       delay(100);
-      digitalWrite(LED_GREEN,HIGH);
+      digitalWrite(LED_GREEN, LOW);
       delay(100);
     }
   #endif
