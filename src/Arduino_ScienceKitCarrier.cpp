@@ -316,9 +316,10 @@ void ScienceKitCarrier::updateAPDS(){
     }
   }
   if (color_sensor_used==APDS9999_VERSION){
-    r = apds9999->getRed()>>1;
-    g = apds9999->getGreen()>>1;
-    b = apds9999->getBlue()>>1;
+    r = apds9999->getRed();
+    g = apds9999->getGreen();
+    b = apds9999->getBlue();
+    c = apds9999->getIR();
     proximity = 255 - apds9999->getProximity();
     if (proximity>255){
       proximity = 0;
