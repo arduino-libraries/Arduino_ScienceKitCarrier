@@ -19,6 +19,7 @@
 
 #include "Arduino_ScienceKitCarrier.h"
 
+
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 short ScienceKitCarrier::sampleBuffer[MICROPHONE_BUFFER_SIZE];
 volatile int ScienceKitCarrier::samplesRead;
@@ -87,8 +88,6 @@ ScienceKitCarrier::ScienceKitCarrier(){
     microphone_rms=0;
     rms=0;
   #endif
-
-  round_robin_index=0;
   
   #ifdef ARDUINO_NANO_RP2040_CONNECT
     thread_activity_led = new rtos::Thread();
@@ -97,7 +96,7 @@ ScienceKitCarrier::ScienceKitCarrier(){
     thread_ultrasonic = new rtos::Thread();
   #endif
 
-  #ifdef ARDUINO_ESP32
+  #ifdef ESP32
     wire_semaphore = xSemaphoreCreateMutex();
   #endif
 
@@ -172,6 +171,7 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
 
   // let's start bme688, external ds18b20 probe and ultrasonic sensor
   startAuxiliaryThreads(auxiliary_threads);
+  return 1;
 }
 
 
@@ -940,7 +940,7 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
         thread_ultrasonic->start(mbed::callback(this, &ScienceKitCarrier::threadUltrasonic));
       #endif
       #ifdef ESP32
-        xTaskCreatePinnedToCore(this->freeRTOSUltrasonic, "update_ultrasonic", 1024, this, 1, &thread_ultrasonic, ULTRASONIC_CORE);
+        xTaskCreatePinnedToCore(this->freeRTOSUltrasonic, "update_ultrasonic", 10000, this, 1, &thread_ultrasonic, ULTRASONIC_CORE);
       #endif
     }
     thread_ultrasonic_is_running = true;
