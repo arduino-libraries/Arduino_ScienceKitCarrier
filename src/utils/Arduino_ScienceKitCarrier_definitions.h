@@ -28,6 +28,13 @@
 #define UPDATE_INPUT_A 1
 #define UPDATE_INPUT_B 2
 
+#ifdef ARDUINO_NANO_RP2040_CONNECT
+#define BOARD_RESOLUTION 0
+#endif
+#ifdef ESP32
+#define BOARD_RESOLUTION 2
+#endif
+
 // APDS9960
 #define INT_APDS9960 9
 
@@ -113,7 +120,7 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define START_EXTERNAL_AMBIENT_SENSOR 3     // ds18b20
 #define START_ULTRASONIC 4                  // grove I2C ultrasonic sensor
 #define START_STATUS_LED 5
-#
+
 
 #ifdef ESP32 // 1 user, 0 secondary core
 #define EXTERNAL_TEMPERATURE_CORE 1

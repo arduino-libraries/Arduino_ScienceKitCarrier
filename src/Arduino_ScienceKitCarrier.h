@@ -71,6 +71,7 @@ class ScienceKitCarrier{
 
     uint8_t inputA_pin, inputB_pin;
     int inputA, inputB;
+    uint8_t board_resolution;
     uint8_t timer_inputA;
 
     APDS9960 * apds9960;
