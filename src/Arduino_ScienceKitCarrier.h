@@ -22,6 +22,10 @@
 
 #include <Arduino.h>
 
+#if !defined(ARDUINO_NANO_RP2040_CONNECT) && !defined(ESP32)
+#error "This product is compatible only with Arduino® Nano RP2040 Connect and Arduino® Nano ESP32
+#endif
+
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 #include "WiFiNINA.h"
 #include "mbed.h"

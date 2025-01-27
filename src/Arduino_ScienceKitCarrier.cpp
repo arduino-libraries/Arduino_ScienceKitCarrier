@@ -291,6 +291,9 @@ int ScienceKitCarrier::beginAPDS(){
   else{
     apds9999->enableColorSensor();
     apds9999->enableProximitySensor();
+    apds9999->setGain(APDS9999_GAIN_1X);
+    apds9999->setLSResolution(APDS9999_LS_RES_16B);
+    apds9999->setLSRate(APDS9999_LS_RATE_25MS);
     color_sensor_used = APDS9999_VERSION;
   }
   #ifdef ESP32
@@ -316,10 +319,10 @@ void ScienceKitCarrier::updateAPDS(){
     }
   }
   if (color_sensor_used==APDS9999_VERSION){
-    r = apds9999->getRed();
-    g = apds9999->getGreen();
-    b = apds9999->getBlue();
-    c = apds9999->getIR();
+    r = apds9999->getRed()*4097/65535.0;
+    g = apds9999->getGreen()*4097/262144.0;
+    b = apds9999->getBlue()*4097/131072.0;
+    c = apds9999->getIR()*4097/4096.0;
     proximity = 255 - apds9999->getProximity();
     if (proximity>255){
       proximity = 0;
