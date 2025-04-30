@@ -30,6 +30,7 @@ rtos::Thread thread_update_sensors;
 
 #ifdef ESP32
 TaskHandle_t update_base;
+TaskHandle_t update_ble;
 #endif
 
 bool ble_is_connected = false;
@@ -43,11 +44,17 @@ void setup(){
     while(1);
   }
 
+  //BLE.setConnectionInterval(6, 12);
+
   String address = BLE.address();
 
   address.toUpperCase();
-
-  name = "ScienceKit R3 - ";
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    name = "ScienceKit R3 - ";
+  #endif
+  #ifdef ESP32
+    name = "ScienceKit - ";
+  #endif
   name += address[address.length() - 5];
   name += address[address.length() - 4];
   name += address[address.length() - 2];
@@ -121,6 +128,7 @@ void setup(){
   #endif
   #ifdef ESP32
     xTaskCreatePinnedToCore(&freeRTOSUpdate, "update_base", 10000, NULL, 1, &update_base, 1); // starts the update sensors thread on core 1 (user)
+    xTaskCreatePinnedToCore(&freeRTOSble, "update_ble", 10000, NULL, 1, &update_ble, 0); // starts the ble thread on core 0 (internal)
   #endif
 }
 
@@ -136,10 +144,16 @@ void update(void){
 static void freeRTOSUpdate(void * pvParameters){
   update();
 }
+
+static void freeRTOSble(void * pvParameters){
+  while(1){
+    updateBle();
+    delay(1);
+  }
+}
 #endif
 
-
-void loop(){
+void updateBle(){
   BLEDevice central = BLE.central();
   if (central) {
     ble_is_connected = true;
@@ -151,6 +165,9 @@ void loop(){
       if (millis()-lastNotify>10){
         updateSubscribedCharacteristics();
         lastNotify=millis();
+        #ifdef ESP32
+          delay(1);
+        #endif
       }
     }
   }
@@ -161,6 +178,13 @@ void loop(){
       science_kit.setStatusLed(STATUS_LED_PAIRING);
     #endif  
   }
+}
+
+
+void loop(){
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    updateBle();
+  #endif
 }
 
 void updateSubscribedCharacteristics(){

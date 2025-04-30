@@ -276,7 +276,7 @@ int ScienceKitCarrier::getInputB(){
 
 
 /********************************************************************/
-/*                             APDS9960                             */
+/*                            APDS99xx                              */
 /********************************************************************/
 
 int ScienceKitCarrier::beginAPDS(){
@@ -291,7 +291,7 @@ int ScienceKitCarrier::beginAPDS(){
   else{
     apds9999->enableColorSensor();
     apds9999->enableProximitySensor();
-    apds9999->setGain(APDS9999_GAIN_1X);
+    apds9999->setGain(APDS9999_GAIN_3X);
     apds9999->setLSResolution(APDS9999_LS_RES_16B);
     apds9999->setLSRate(APDS9999_LS_RATE_25MS);
     color_sensor_used = APDS9999_VERSION;
@@ -813,7 +813,7 @@ void ScienceKitCarrier::retriveUltrasonicUpdate(){
 }
 
 float ScienceKitCarrier::getDistance(){
-  return distance;
+  return distance/1000.0;
 }
 
 float ScienceKitCarrier::getTravelTime(){
