@@ -53,8 +53,13 @@ const int VERSION = 0x00000002;
 #define BLE_CH____PING               "1020"
 #define BLE_CH_FUNGEN2               "1021"
 
-
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #define SCIENCE_KIT_UUID(val) ("555a0003-" val "-467a-9538-01f0652c74e8")
+#endif
+#ifdef ESP32
+#define SCIENCE_KIT_UUID(val) ("555a0004-" val "-467a-9538-01f0652c74e8")
+#endif
+
 
 /* 
  * SERVICE, VERSION 
