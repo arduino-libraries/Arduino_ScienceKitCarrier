@@ -813,7 +813,7 @@ void ScienceKitCarrier::retriveUltrasonicUpdate(){
 }
 
 float ScienceKitCarrier::getDistance(){
-  return distance;
+  return distance/1000.0;
 }
 
 float ScienceKitCarrier::getTravelTime(){
