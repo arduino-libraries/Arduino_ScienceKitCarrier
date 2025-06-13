@@ -43,6 +43,10 @@ void setup(){
     while(1);
   }
 
+  #ifdef ESP32
+    BLE.setConnectionInterval(6, 12);
+  #endif
+
   String address = BLE.address();
 
   address.toUpperCase();
