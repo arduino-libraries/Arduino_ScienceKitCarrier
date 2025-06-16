@@ -38,7 +38,6 @@ bool ble_is_connected = false;
 
 
 void setup(){
-  pinMode(6,OUTPUT);
   science_kit.begin(NO_AUXILIARY_THREADS); // Doesn't start the BME688 and external temperature threads for the moment
 
   if (!BLE.begin()){
@@ -132,9 +131,7 @@ void setup(){
 
 void update(void){
   while(1){
-    digitalWrite(6,HIGH);
     science_kit.update(ROUND_ROBIN_ENABLED);
-    digitalWrite(6,LOW);
     delay(25);
   }
 }
