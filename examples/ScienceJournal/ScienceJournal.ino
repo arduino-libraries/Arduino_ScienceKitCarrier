@@ -30,6 +30,7 @@ rtos::Thread thread_update_sensors;
 
 #ifdef ESP32
 TaskHandle_t update_base;
+TaskHandle_t update_ble;
 #endif
 
 bool ble_is_connected = false;
@@ -37,15 +38,14 @@ bool ble_is_connected = false;
 
 
 void setup(){
+  pinMode(6,OUTPUT);
   science_kit.begin(NO_AUXILIARY_THREADS); // Doesn't start the BME688 and external temperature threads for the moment
 
   if (!BLE.begin()){
     while(1);
   }
 
-  #ifdef ESP32
-    BLE.setConnectionInterval(6, 12);
-  #endif
+  //BLE.setConnectionInterval(6, 12);
 
   String address = BLE.address();
 
@@ -125,13 +125,16 @@ void setup(){
   #endif
   #ifdef ESP32
     xTaskCreatePinnedToCore(&freeRTOSUpdate, "update_base", 10000, NULL, 1, &update_base, 1); // starts the update sensors thread on core 1 (user)
+    xTaskCreatePinnedToCore(&freeRTOSble, "update_ble", 10000, NULL, 1, &update_ble, 0); // starts the ble thread on core 0 (internal)
   #endif
 }
 
 
 void update(void){
   while(1){
+    digitalWrite(6,HIGH);
     science_kit.update(ROUND_ROBIN_ENABLED);
+    digitalWrite(6,LOW);
     delay(25);
   }
 }
@@ -140,10 +143,16 @@ void update(void){
 static void freeRTOSUpdate(void * pvParameters){
   update();
 }
+
+static void freeRTOSble(void * pvParameters){
+  while(1){
+    updateBle();
+    delay(1);
+  }
+}
 #endif
 
-
-void loop(){
+void updateBle(){
   BLEDevice central = BLE.central();
   if (central) {
     ble_is_connected = true;
@@ -155,6 +164,9 @@ void loop(){
       if (millis()-lastNotify>10){
         updateSubscribedCharacteristics();
         lastNotify=millis();
+        #ifdef ESP32
+          delay(1);
+        #endif
       }
     }
   }
@@ -165,6 +177,13 @@ void loop(){
       science_kit.setStatusLed(STATUS_LED_PAIRING);
     #endif  
   }
+}
+
+
+void loop(){
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    updateBle();
+  #endif
 }
 
 void updateSubscribedCharacteristics(){
