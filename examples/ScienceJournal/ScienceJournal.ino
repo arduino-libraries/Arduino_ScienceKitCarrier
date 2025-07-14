@@ -50,7 +50,7 @@ void setup(){
 
   address.toUpperCase();
 
-  name = "ScienceKit R3 - ";
+  name = "ScienceKit - ";
   name += address[address.length() - 5];
   name += address[address.length() - 4];
   name += address[address.length() - 2];
