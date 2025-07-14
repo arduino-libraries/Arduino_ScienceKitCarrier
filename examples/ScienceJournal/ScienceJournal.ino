@@ -49,8 +49,12 @@ void setup(){
   String address = BLE.address();
 
   address.toUpperCase();
-
-  name = "ScienceKit - ";
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    name = "ScienceKit R3 - ";
+  #endif
+  #ifdef ESP32
+    name = "ScienceKit - ";
+  #endif
   name += address[address.length() - 5];
   name += address[address.length() - 4];
   name += address[address.length() - 2];
