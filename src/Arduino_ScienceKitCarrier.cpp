@@ -98,7 +98,7 @@ ScienceKitCarrier::ScienceKitCarrier(){
     thread_ultrasonic = new rtos::Thread();
   #endif
 
-  #ifdef ESP32
+  #ifdef ARDUINO_NANO_ESP32
     wire_semaphore = xSemaphoreCreateMutex();
   #endif
 
@@ -124,7 +124,7 @@ ScienceKitCarrier::ScienceKitCarrier(){
 
 int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
 
-  #ifdef ESP32
+  #ifdef ARDUINO_NANO_ESP32
     pinMode(LED_RED,OUTPUT);
     pinMode(LED_GREEN,OUTPUT);
     pinMode(LED_BLUE,OUTPUT);
@@ -249,7 +249,7 @@ void ScienceKitCarrier::updateAnalogInput(const uint8_t input_to_update){
     
     if (!getExternalTemperatureIsConnected()){
       inputA=analogRead(inputA_pin)>>board_resolution;
-      #ifdef ESP32
+      #ifdef ARDUINO_NANO_ESP32
         beginExternalTemperature();
       #endif
     }
@@ -291,12 +291,12 @@ int ScienceKitCarrier::beginAPDS(){
   else{
     apds9999->enableColorSensor();
     apds9999->enableProximitySensor();
-    apds9999->setGain(APDS9999_GAIN_3X);
+    apds9999->setGain(APDS9999_GAIN_18X);
     apds9999->setLSResolution(APDS9999_LS_RES_16B);
     apds9999->setLSRate(APDS9999_LS_RATE_25MS);
     color_sensor_used = APDS9999_VERSION;
   }
-  #ifdef ESP32
+  #ifdef ARDUINO_NANO_ESP32
     for(int i=0; i<=color_sensor_used; i++){
       digitalWrite(LED_GREEN, LOW);
       delay(100);
@@ -319,10 +319,10 @@ void ScienceKitCarrier::updateAPDS(){
     }
   }
   if (color_sensor_used==APDS9999_VERSION){
-    r = apds9999->getRed()*4097/65535.0;
-    g = apds9999->getGreen()*4097/262144.0;
-    b = apds9999->getBlue()*4097/131072.0;
-    c = apds9999->getIR()*4097/4096.0;
+    r = apds9999->getRed()*5.0*4097/65535.0;
+    g = apds9999->getGreen()*5.0*4097/262144.0;
+    b = apds9999->getBlue()*5.0*4097/131072.0;
+    c = apds9999->getIR()*5.0*4097/4096.0;
     proximity = 255 - apds9999->getProximity();
     if (proximity>255){
       proximity = 0;
@@ -436,7 +436,7 @@ float ScienceKitCarrier::getResistanceMeasureVolts(){
   #ifdef ARDUINO_NANO_RP2040_CONNECT
     value = REF_VOLTAGE*analogRead(resistance_pin)/ADC_RESOLUTION;
   #endif
-  #ifdef ESP32
+  #ifdef ARDUINO_NANO_ESP32
     value = analogReadMilliVolts(resistance_pin)/1000.0;
   #endif
   return value;
@@ -519,7 +519,7 @@ void ScienceKitCarrier::threadBME688(){
   }
 }
 
-#ifdef ESP32
+#ifdef ARDUINO_NANO_ESP32
 void ScienceKitCarrier::freeRTOSInternalTemperature(void * pvParameters){
   ((ScienceKitCarrier*) pvParameters)->threadBME688();
 }
@@ -650,7 +650,7 @@ void ScienceKitCarrier::errorTrap(const int error_code){
   }
 }
 
-#ifdef ESP32
+#ifdef ARDUINO_NANO_ESP32
 void ScienceKitCarrier::setStatusLed(const int led_state){
   switch (led_state){
     case STATUS_LED_OFF:
@@ -768,7 +768,7 @@ void ScienceKitCarrier::updateUltrasonic(){
   if (ultrasonic_data==4294967295){
     ultrasonic_measure = -1.0;
     ultrasonic_is_connected = false;
-    #ifdef ESP32
+    #ifdef ARDUINO_NANO_ESP32
       setStatusLed(STATUS_LED_RM_ULTRASONIC);
     #endif
   }
@@ -778,7 +778,7 @@ void ScienceKitCarrier::updateUltrasonic(){
       ultrasonic_measure = 4500.0;
     }
     ultrasonic_is_connected = true;
-    #ifdef ESP32
+    #ifdef ARDUINO_NANO_ESP32
       setStatusLed(STATUS_LED_ADD_ULTRASONIC);
     #endif
   }
@@ -831,7 +831,7 @@ void ScienceKitCarrier::threadUltrasonic(){
   }
 }
 
-#ifdef ESP32
+#ifdef ARDUINO_NANO_ESP32
 void ScienceKitCarrier::freeRTOSUltrasonic(void * pvParameters){
   ((ScienceKitCarrier*) pvParameters)->threadUltrasonic();
 }
@@ -857,7 +857,7 @@ void ScienceKitCarrier::updateExternalTemperature(){
   #ifdef ARDUINO_NANO_RP2040_CONNECT
     pinMode(OW_PIN,INPUT);
   #endif
-  #ifdef ESP32
+  #ifdef ARDUINO_NANO_ESP32
     pinMode(INPUTA_PIN,INPUT);
   #endif
 
@@ -870,14 +870,14 @@ void ScienceKitCarrier::updateExternalTemperature(){
   if (ec == OneWireNg::EC_SUCCESS) {
     if (scrpd->getAddr()!=15){
       external_temperature_is_connected=false;
-      #ifdef ESP32
+      #ifdef ARDUINO_NANO_ESP32
         setStatusLed(STATUS_LED_RM_EXT_TEMP);
       #endif
       external_temperature = EXTERNAL_TEMPERATURE_DISABLED;
     }
     else{
       external_temperature_is_connected=true;
-      #ifdef ESP32
+      #ifdef ARDUINO_NANO_ESP32
         setStatusLed(STATUS_LED_ADD_EXT_TEMP);
       #endif
       long temp = scrpd->getTemp();
@@ -910,7 +910,7 @@ void ScienceKitCarrier::threadExternalTemperature(){
   }
 }
 
-#ifdef ESP32
+#ifdef ARDUINO_NANO_ESP32
 void ScienceKitCarrier::freeRTOSExternalTemperature(void * pvParameters){
   ((ScienceKitCarrier*) pvParameters)->threadExternalTemperature();
 }
@@ -973,7 +973,7 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
       #ifdef ARDUINO_NANO_RP2040_CONNECT
         thread_update_bme->start(mbed::callback(this, &ScienceKitCarrier::threadBME688)); 
       #endif
-      #ifdef ESP32
+      #ifdef ARDUINO_NANO_ESP32
         xTaskCreatePinnedToCore(this->freeRTOSInternalTemperature, "update_internal_temperature", 10000, this, 1, &thread_internal_temperature, INTERNAL_TEMPERATURE_CORE);
       #endif
     }
@@ -986,7 +986,7 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
       #ifdef ARDUINO_NANO_RP2040_CONNECT
         thread_external_temperature->start(mbed::callback(this, &ScienceKitCarrier::threadExternalTemperature));
       #endif
-      #ifdef ESP32
+      #ifdef ARDUINO_NANO_ESP32
         xTaskCreatePinnedToCore(this->freeRTOSExternalTemperature, "update_external_temperature", 10000, this, 1, &thread_external_temperature, EXTERNAL_TEMPERATURE_CORE);
       #endif
     }
@@ -999,7 +999,7 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
       #ifdef ARDUINO_NANO_RP2040_CONNECT
         thread_ultrasonic->start(mbed::callback(this, &ScienceKitCarrier::threadUltrasonic));
       #endif
-      #ifdef ESP32
+      #ifdef ARDUINO_NANO_ESP32
         xTaskCreatePinnedToCore(this->freeRTOSUltrasonic, "update_ultrasonic", 10000, this, 1, &thread_ultrasonic, ULTRASONIC_CORE);
       #endif
     }
@@ -1007,7 +1007,7 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
   }
 
   // start status led
-  #ifdef ESP32
+  #ifdef ARDUINO_NANO_ESP32
   if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_STATUS_LED)){
     if (!thread_led_is_running){
       xTaskCreatePinnedToCore(this->freeRTOSStatusLed, "update_led", 10000, this, 1, &thread_led, LED_CORE);

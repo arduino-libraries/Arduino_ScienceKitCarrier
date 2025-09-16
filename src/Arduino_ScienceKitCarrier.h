@@ -22,7 +22,7 @@
 
 #include <Arduino.h>
 
-#if !defined(ARDUINO_NANO_RP2040_CONNECT) && !defined(ESP32)
+#if !defined(ARDUINO_NANO_RP2040_CONNECT) && !defined(ARDUINO_NANO_ESP32)
 #error "This product is compatible only with Arduino® Nano RP2040 Connect and Arduino® Nano ESP32
 #endif
 
@@ -46,7 +46,7 @@
 #include "../../OneWireNg/src/platform/OneWireNg_PicoRP2040.h"  // forces to use gpio instead PIO hw
 #define OneWireNg_CurrentPlatform OneWireNg_PicoRP2040
 #endif
-#ifdef ESP32
+#ifdef ARDUINO_NANO_ESP32
 #include "OneWireNg_CurrentPlatform.h"
 #endif
 #include "drivers/DSTherm.h"
@@ -64,7 +64,7 @@ static  Placeholder<OneWireNg_CurrentPlatform> ow;
 #define wire_unlock wire_mutex.unlock()
 #endif
 
-#ifdef ESP32
+#ifdef ARDUINO_NANO_ESP32
 #define wire_lock while(!xSemaphoreTake(wire_semaphore, 5)){}
 #define wire_unlock xSemaphoreGive(wire_semaphore)
 #endif
@@ -122,7 +122,7 @@ class ScienceKitCarrier{
     rtos::Mutex wire_mutex;
     #endif
 
-    #ifdef ESP32
+    #ifdef ARDUINO_NANO_ESP32
     TaskHandle_t thread_internal_temperature;
     TaskHandle_t thread_external_temperature;
     TaskHandle_t thread_ultrasonic;
@@ -155,7 +155,7 @@ class ScienceKitCarrier{
     void errorTrap(const int error_code=0);
 
     /* Status led */
-    #ifdef ESP32
+    #ifdef ARDUINO_NANO_ESP32
     void setStatusLed(const int led_state=STATUS_LED_OFF);
     void threadStatusLed();
     static void freeRTOSStatusLed(void * pvParameters);
@@ -206,7 +206,7 @@ class ScienceKitCarrier{
     float getHumidity();          // Percentage
     float getAirQuality();        // index, if good it is 25.0
     void threadBME688();          // thread used to update BME688 automatically in multithread mode
-    #ifdef ESP32
+    #ifdef ARDUINO_NANO_ESP32
     static void freeRTOSInternalTemperature(void * pvParameters);
     #endif
 
@@ -250,7 +250,7 @@ class ScienceKitCarrier{
     float getTravelTime();      // microseconds
     bool getUltrasonicIsConnected();
     void threadUltrasonic();
-    #ifdef ESP32
+    #ifdef ARDUINO_NANO_ESP32
     static void freeRTOSUltrasonic(void * pvParameters);
     #endif
 
@@ -262,7 +262,7 @@ class ScienceKitCarrier{
     float getExternalTemperature();     // celsius
     bool getExternalTemperatureIsConnected();
     void threadExternalTemperature();
-    #ifdef ESP32
+    #ifdef ARDUINO_NANO_ESP32
     static void freeRTOSExternalTemperature(void * pvParameters);
     #endif
 

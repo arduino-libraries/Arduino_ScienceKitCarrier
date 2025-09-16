@@ -56,7 +56,7 @@ const int VERSION = 0x00000002;
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 #define SCIENCE_KIT_UUID(val) ("555a0003-" val "-467a-9538-01f0652c74e8")
 #endif
-#ifdef ESP32
+#ifdef ARDUINO_NANO_ESP32
 #define SCIENCE_KIT_UUID(val) ("555a0004-" val "-467a-9538-01f0652c74e8")
 #endif
 

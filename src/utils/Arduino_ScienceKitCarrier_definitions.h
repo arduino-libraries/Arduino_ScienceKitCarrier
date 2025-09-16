@@ -31,7 +31,7 @@
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 #define BOARD_RESOLUTION 0
 #endif
-#ifdef ESP32
+#ifdef ARDUINO_NANO_ESP32
 #define BOARD_RESOLUTION 2
 #endif
 
@@ -50,7 +50,7 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 #define REF_VOLTAGE 3.3
 #endif 
-#ifdef ESP32
+#ifdef ARDUINO_NANO_ESP32
 #define REF_VOLTAGE 3.15
 #endif 
 #define RESISTANCE_CALIBRATION_HIGH 200000
@@ -58,7 +58,7 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 #define ADC_RESOLUTION 1023.0
 #endif
-#ifdef ESP32
+#ifdef ARDUINO_NANO_ESP32
 #define ADC_RESOLUTION 4095.0
 #endif
 
@@ -72,7 +72,7 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 #define OW_PIN digitalPinToPinName(INPUTA_PIN)
 #endif
-#ifdef ESP32
+#ifdef ARDUINO_NANO_ESP32
 #define OW_PIN digitalPinToGPIONumber(INPUTA_PIN)
 #endif
 #define EXTERNAL_TEMPERATURE_DISABLED -273.15; // absolute zero xD
@@ -124,7 +124,7 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define START_STATUS_LED 5
 
 
-#ifdef ESP32 // 1 user, 0 secondary core
+#ifdef ARDUINO_NANO_ESP32 // 1 user, 0 secondary core
 #define EXTERNAL_TEMPERATURE_CORE 1
 #define INTERNAL_TEMPERATURE_CORE 0
 #define ULTRASONIC_CORE 1

@@ -95,7 +95,7 @@ void loop() {
   Serial.print(science_kit.getTravelTime());
   Serial.print("\t|| ");
 
-  // Microphone is only availble on Arduino Nano RP2040 Connect edition
+  // Microphone is only available on Arduino Nano RP2040 Connect edition
   #ifdef ARDUINO_NANO_RP2040_CONNECT
   Serial.print(science_kit.getMicrophoneRMS());
   Serial.print("\t|| ");
