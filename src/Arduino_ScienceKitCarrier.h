@@ -21,19 +21,34 @@
 #define __ARDUINO_SCIENCEKITCARRIER_H__
 
 #include <Arduino.h>
+
+#if !defined(ARDUINO_NANO_RP2040_CONNECT) && !defined(ARDUINO_NANO_ESP32)
+#error "This product is compatible only with Arduino® Nano RP2040 Connect and Arduino® Nano ESP32
+#endif
+
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #include "WiFiNINA.h"
 #include "mbed.h"
 #include "rtos.h"
+#include <PDM.h>
+#endif
+
 #include <Wire.h>
 #include "Arduino_APDS9960.h"
+#include "Arduino_APDS9999.h"
 #include "INA.h"
-#include "bsec.h"
-#include "Arduino_BMI270_BMM150.h"
-#include "Arduino_GroveI2C_Ultrasonic.h"
-#include <PDM.h>
 
+#include "bsec2.h"
+
+#include "Arduino_BMI270_BMM150.h"
+
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #include "../../OneWireNg/src/platform/OneWireNg_PicoRP2040.h"  // forces to use gpio instead PIO hw
 #define OneWireNg_CurrentPlatform OneWireNg_PicoRP2040
+#endif
+#ifdef ARDUINO_NANO_ESP32
+#include "OneWireNg_CurrentPlatform.h"
+#endif
 #include "drivers/DSTherm.h"
 #include "utils/Placeholder.h"
 
@@ -44,6 +59,16 @@
 static  Placeholder<OneWireNg_CurrentPlatform> ow;
 
 
+#ifdef ARDUINO_NANO_RP2040_CONNECT
+#define wire_lock wire_mutex.lock()
+#define wire_unlock wire_mutex.unlock()
+#endif
+
+#ifdef ARDUINO_NANO_ESP32
+#define wire_lock while(!xSemaphoreTake(wire_semaphore, 5)){}
+#define wire_unlock xSemaphoreGive(wire_semaphore)
+#endif
+
 
 class ScienceKitCarrier{
   private:
@@ -51,10 +76,13 @@ class ScienceKitCarrier{
 
     uint8_t inputA_pin, inputB_pin;
     int inputA, inputB;
+    uint8_t board_resolution;
     uint8_t timer_inputA;
 
     APDS9960 * apds9960;
+    Arduino_APDS9999 * apds9999;
     int r,g,b,c, proximity;
+    int color_sensor_used;
 
     INA_Class * ina;
     float voltage, current;
@@ -62,7 +90,7 @@ class ScienceKitCarrier{
     uint8_t resistance_pin;
     float resistance, opencircuit_resistance;
 
-    Bsec * bme688;
+    Bsec2 * bme688;
     float temperature, pressure, humidity, airquality;
     uint8_t bme688_cs;
 
@@ -74,48 +102,64 @@ class ScienceKitCarrier{
     FunctionGeneratorController * function_generator_controller;
     uint8_t frequency1, frequency2, phase1, phase2, range1, range2;
 
-    Arduino_GroveI2C_Ultrasonic * ultrasonic;
-    float distance, travel_time;
+    float ultrasonic_measure,distance, travel_time;
+    uint32_t ultrasonic_data;
     bool ultrasonic_is_connected;
 
     bool external_temperature_is_connected;
     float external_temperature;
 
 
-
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
     uint microphone_rms, rms;
     static const char channels = MICROPHONE_CHANNELS;
     static const int frequency = MICROPHONE_FREQUENCY;
 
-
-    rtos::Thread * thread_activity_led;
+    rtos::Thread * thread_status_led;
     rtos::Thread * thread_update_bme;
     rtos::Thread * thread_external_temperature;
+    rtos::Thread * thread_ultrasonic;
+    rtos::Mutex wire_mutex;
+    #endif
+
+    #ifdef ARDUINO_NANO_ESP32
+    TaskHandle_t thread_internal_temperature;
+    TaskHandle_t thread_external_temperature;
+    TaskHandle_t thread_ultrasonic;
+    TaskHandle_t thread_led;
+    SemaphoreHandle_t wire_semaphore;
+    #endif
 
     bool thread_bme_is_running;
     bool thread_ext_temperature_is_running;
+    bool thread_ultrasonic_is_running;
+    bool thread_led_is_running;
+    bool thread_update_is_running;
 
-    uint8_t activity_led_state;
+    uint8_t status_led_state;
+    bool enable_led_red, enable_led_green, enable_led_blue;
+    unsigned long led_time_base;
+
+    void requestUltrasonicUpdate();
+    void retriveUltrasonicUpdate();
 
   public:
     ScienceKitCarrier();
 
     int begin(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
     void update(const bool roundrobin=false);  // this makes update on: analog in, imu, apds, ina, resistance, round robin enables one sensor update
+
     void startAuxiliaryThreads(const uint8_t auxiliary_threads=START_AUXILIARY_THREADS);
-
-
-
-    void delay(unsigned long t); // you must use this instead delay, due threads usage
-
-
 
     /* Blink red alert */
     void errorTrap(const int error_code=0);
 
-    /* Activity led */
-    void threadActivityLed();
-    void setActivityLed(const int led_state=ACTIVITY_LED_OFF);
+    /* Status led */
+    #ifdef ARDUINO_NANO_ESP32
+    void setStatusLed(const int led_state=STATUS_LED_OFF);
+    void threadStatusLed();
+    static void freeRTOSStatusLed(void * pvParameters);
+    #endif
 
 
 
@@ -150,6 +194,7 @@ class ScienceKitCarrier{
     int beginResistance();
     void updateResistance();
     float getResistance();        // Ohm
+    float getResistanceMeasureVolts();  // Volt
 
 
 
@@ -161,7 +206,9 @@ class ScienceKitCarrier{
     float getHumidity();          // Percentage
     float getAirQuality();        // index, if good it is 25.0
     void threadBME688();          // thread used to update BME688 automatically in multithread mode
-
+    #ifdef ARDUINO_NANO_ESP32
+    static void freeRTOSInternalTemperature(void * pvParameters);
+    #endif
 
 
     /* BMI270 & BMM150, 9dof imu, acceleration, gyroscope and magnetometer */
@@ -198,11 +245,14 @@ class ScienceKitCarrier{
 
 
     /* Ultrasonic sensor */
-    int beginUltrasonic();
     void updateUltrasonic();
     float getDistance();        // meters
     float getTravelTime();      // microseconds
     bool getUltrasonicIsConnected();
+    void threadUltrasonic();
+    #ifdef ARDUINO_NANO_ESP32
+    static void freeRTOSUltrasonic(void * pvParameters);
+    #endif
 
 
 
@@ -212,9 +262,11 @@ class ScienceKitCarrier{
     float getExternalTemperature();     // celsius
     bool getExternalTemperatureIsConnected();
     void threadExternalTemperature();
+    #ifdef ARDUINO_NANO_ESP32
+    static void freeRTOSExternalTemperature(void * pvParameters);
+    #endif
 
-
-
+    #ifdef ARDUINO_NANO_RP2040_CONNECT
     /* Microphone - onboard PDM */
     int beginMicrophone();
     void updateMicrophone();  
@@ -223,7 +275,7 @@ class ScienceKitCarrier{
 
     static short sampleBuffer[MICROPHONE_BUFFER_SIZE]; //must be public
     static volatile int samplesRead;
-
+    #endif
 
 };
 

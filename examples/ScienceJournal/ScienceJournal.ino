@@ -23,9 +23,18 @@
 String name;
 unsigned long lastNotify = 0;
 ScienceKitCarrier science_kit;
+
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 rtos::Thread thread_update_sensors;
+#endif
+
+#ifdef ARDUINO_NANO_ESP32
+TaskHandle_t update_base;
+TaskHandle_t update_ble;
+#endif
 
 bool ble_is_connected = false;
+
 
 
 void setup(){
@@ -35,11 +44,17 @@ void setup(){
     while(1);
   }
 
+  //BLE.setConnectionInterval(6, 12);
+
   String address = BLE.address();
 
   address.toUpperCase();
-
-  name = "ScienceKit R3 - ";
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    name = "ScienceKit R3 - ";
+  #endif
+  #ifdef ARDUINO_NANO_ESP32
+    name = "ScienceKit - ";
+  #endif
   name += address[address.length() - 5];
   name += address[address.length() - 4];
   name += address[address.length() - 2];
@@ -76,10 +91,14 @@ void setup(){
   service.addCharacteristic(humidityCharacteristic);
   /* _____________________________________________________________AIR_QUALITY */
   service.addCharacteristic(airQualityCharacteristic);
+
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
   /* _________________________________________________________SOUND_INTENSITY */
   service.addCharacteristic(sndIntensityCharacteristic);
   /* _____________________________________________________________SOUND_PITCH */
   service.addCharacteristic(sndPitchCharacteristic);
+  #endif
+
   /* _________________________________________________________________INPUT_A */
   service.addCharacteristic(inputACharacteristic);
   /* _________________________________________________________________INPUT_B */
@@ -101,36 +120,71 @@ void setup(){
 
   BLE.addService(service);
   BLE.advertise();
-
+  
   science_kit.startAuxiliaryThreads(); // start the BME688 and External Temperature Probe threads
 
-  thread_update_sensors.start(update); // this thread updates sensors
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    thread_update_sensors.start(update); // this thread updates sensors
+  #endif
+  #ifdef ARDUINO_NANO_ESP32
+    xTaskCreatePinnedToCore(&freeRTOSUpdate, "update_base", 10000, NULL, 1, &update_base, 1); // starts the update sensors thread on core 1 (user)
+    xTaskCreatePinnedToCore(&freeRTOSble, "update_ble", 10000, NULL, 1, &update_ble, 0); // starts the ble thread on core 0 (internal)
+  #endif
 }
 
 
 void update(void){
   while(1){
     science_kit.update(ROUND_ROBIN_ENABLED);
-    rtos::ThisThread::sleep_for(25);
+    delay(25);
   }
 }
 
-void loop(){
+#ifdef ARDUINO_NANO_ESP32
+static void freeRTOSUpdate(void * pvParameters){
+  update();
+}
+
+static void freeRTOSble(void * pvParameters){
+  while(1){
+    updateBle();
+    delay(1);
+  }
+}
+#endif
+
+void updateBle(){
   BLEDevice central = BLE.central();
   if (central) {
     ble_is_connected = true;
+    #ifdef ARDUINO_NANO_ESP32
+      science_kit.setStatusLed(STATUS_LED_BLE);
+    #endif  
     lastNotify=millis();
     while (central.connected()) {
       if (millis()-lastNotify>10){
         updateSubscribedCharacteristics();
         lastNotify=millis();
+        #ifdef ARDUINO_NANO_ESP32
+          delay(1);
+        #endif
       }
     }
   }
   else {
     delay(100);
     ble_is_connected = false;
+    #ifdef ARDUINO_NANO_ESP32
+      science_kit.setStatusLed(STATUS_LED_PAIRING);
+    #endif  
   }
+}
+
+
+void loop(){
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    updateBle();
+  #endif
 }
 
 void updateSubscribedCharacteristics(){
@@ -199,7 +253,6 @@ void updateSubscribedCharacteristics(){
   /* 
    * BME688 
    */
-
   /* _____________________________________________________________TEMPERATURE */
   if(temperatureCharacteristic.subscribed()){
     temperatureCharacteristic.writeValue(science_kit.getTemperature());
@@ -219,10 +272,11 @@ void updateSubscribedCharacteristics(){
   if(airQualityCharacteristic.subscribed()){
     airQualityCharacteristic.writeValue(science_kit.getAirQuality());
   }
-  
+
   /*
    * MICROPHONE
    */
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
 
   /* _________________________________________________________SOUND_INTENSITY */
   /* NOTE: raw value - value not in Db */ 
@@ -232,8 +286,9 @@ void updateSubscribedCharacteristics(){
 
   /* _____________________________________________________________SOUND_PITCH */
   if(sndPitchCharacteristic.subscribed()){
-    sndPitchCharacteristic.writeValue(science_kit.getExternalTemperature());
+    sndPitchCharacteristic.writeValue(0.0);
   }
+  #endif
 
   /* _________________________________________________________________INPUT_A */
   if (inputACharacteristic.subscribed()){
@@ -269,26 +324,16 @@ void updateSubscribedCharacteristics(){
 
   /* ________________________________________________________________DISTANCE */
   if (distanceCharacteristic.subscribed()){
-    if (science_kit.getUltrasonicIsConnected()){
-      /* NOTE: getDistance() calls getMeters() 
-         Requested value is in meters */
-      distanceCharacteristic.writeValue(science_kit.getDistance());
-    }
-    else{
-      distanceCharacteristic.writeValue(-1.0);
-    }
+    /* NOTE: getDistance() calls getMeters() */
+    /*       Requested value is in meters    */
+    distanceCharacteristic.writeValue(science_kit.getDistance());
   }
 
   /* ____________________________________________________________________PING */
   if (pingCharacteristic.subscribed()){
-     if (science_kit.getUltrasonicIsConnected()){
-      /* NOTE: getTravelTime() returns micro seconds  */
-      /* Converted to milliseconds (agreed with RF 20230719) */
-      pingCharacteristic.writeValue(science_kit.getTravelTime() * 1000.0 );
-    }
-    else{
-      pingCharacteristic.writeValue(-1.0);
-    } 
+    /* NOTE: getTravelTime() returns micro seconds               */
+    /*       Converted to milliseconds (agreed with RF 20230719) */
+    pingCharacteristic.writeValue(science_kit.getTravelTime() * 1000.0 );
   }  
 }
 

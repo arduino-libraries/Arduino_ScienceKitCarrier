@@ -19,8 +19,11 @@
 
 #include "Arduino_ScienceKitCarrier.h"
 
+
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 short ScienceKitCarrier::sampleBuffer[MICROPHONE_BUFFER_SIZE];
 volatile int ScienceKitCarrier::samplesRead;
+#endif
 
 
 ScienceKitCarrier::ScienceKitCarrier(){
@@ -31,8 +34,10 @@ ScienceKitCarrier::ScienceKitCarrier(){
   inputA=0;
   inputB=0;
   timer_inputA = 0;
+  board_resolution = BOARD_RESOLUTION;
 
   apds9960 = new APDS9960(Wire,INT_APDS9960);
+  apds9999 = new Arduino_APDS9999(Wire);
   proximity=0;
   r=0;
   g=0;
@@ -46,7 +51,7 @@ ScienceKitCarrier::ScienceKitCarrier(){
   resistance_pin = RESISTANCE_PIN;
   opencircuit_resistance = RESISTANCE_CALIBRATION_HIGH;
 
-  bme688 = new Bsec();
+  bme688 = new Bsec2();
   temperature=0.0;
   pressure=0.0;
   humidity=0.0;
@@ -72,27 +77,41 @@ ScienceKitCarrier::ScienceKitCarrier(){
   range1=0;
   range2=0;
 
-  ultrasonic = new Arduino_GroveI2C_Ultrasonic();
-  distance=0.0;
-  travel_time=0.0;
+  ultrasonic_measure = 0.0;
+  ultrasonic_data = 0;
+  distance = 0.0;
+  travel_time = 0.0;
   ultrasonic_is_connected=false;
 
   external_temperature=EXTERNAL_TEMPERATURE_DISABLED;
   external_temperature_is_connected=false;
 
-  microphone_rms=0;
-  rms=0;
-
-  round_robin_index=0;
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    microphone_rms=0;
+    rms=0;
+  #endif
   
-  thread_activity_led = new rtos::Thread();
-  thread_update_bme = new rtos::Thread();
-  thread_external_temperature = new rtos::Thread();
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    thread_status_led = new rtos::Thread();
+    thread_update_bme = new rtos::Thread();
+    thread_external_temperature = new rtos::Thread();
+    thread_ultrasonic = new rtos::Thread();
+  #endif
+
+  #ifdef ARDUINO_NANO_ESP32
+    wire_semaphore = xSemaphoreCreateMutex();
+  #endif
 
   thread_bme_is_running = false;
   thread_ext_temperature_is_running = false;
+  thread_ultrasonic_is_running = false;
+  thread_led_is_running = false;
 
-  activity_led_state = ACTIVITY_LED_OFF;
+  status_led_state = STATUS_LED_OFF;
+  enable_led_red = false;
+  enable_led_green = false;
+  enable_led_blue = false;
+  led_time_base = 20;
 }
 
 
@@ -104,12 +123,15 @@ ScienceKitCarrier::ScienceKitCarrier(){
 /********************************************************************/
 
 int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
-  pinMode(LEDR,OUTPUT);
-  digitalWrite(LEDR,LOW);
-  pinMode(LEDG,OUTPUT);
-  digitalWrite(LEDG,LOW);
-  pinMode(LEDB,OUTPUT);
-  digitalWrite(LEDB,LOW);
+
+  #ifdef ARDUINO_NANO_ESP32
+    pinMode(LED_RED,OUTPUT);
+    pinMode(LED_GREEN,OUTPUT);
+    pinMode(LED_BLUE,OUTPUT);
+    digitalWrite(LED_RED,HIGH);
+    digitalWrite(LED_GREEN,HIGH);
+    digitalWrite(LED_BLUE,HIGH);
+  #endif
 
 
   Wire.begin();
@@ -125,7 +147,7 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
   if (beginINA()!=0){
     return ERR_BEGIN_INA;
   }
-
+  
   // let's start resistance measurement
   if (beginResistance()!=0){
     return ERR_BEGIN_RESISTANCE;
@@ -142,17 +164,15 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
   }
 
   // let's start microphone (PDM on Arduino Nano RP2040 Connect)
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
   if (beginMicrophone()!=0){
     return ERR_BEGIN_MICROPHONE;
   }
+  #endif
 
-    // let's start ultrasonic and check if it is connected
-  if (beginUltrasonic()!=0){
-    return ERR_BEGIN_ULTRASONIC;
-  }
-
-  // let's start bme688 and external ds18b20 probe
+  // let's start bme688, external ds18b20 probe and ultrasonic sensor
   startAuxiliaryThreads(auxiliary_threads);
+  return 1;
 }
 
 
@@ -164,7 +184,9 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
 /********************************************************************/
 
 void ScienceKitCarrier::update(const bool roundrobin){
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
   updateMicrophone();                        // about 1ms when MICROPHONE_BUFFER_SIZE is 512
+  #endif
   if (!roundrobin){
     updateAnalogInput();
     updateAPDS();
@@ -172,9 +194,6 @@ void ScienceKitCarrier::update(const bool roundrobin){
     updateResistance();
     updateIMU();
     updateFrequencyGeneratorData();
-
-    // update external
-    updateUltrasonic();
   }
   else{
     switch (round_robin_index){
@@ -195,7 +214,6 @@ void ScienceKitCarrier::update(const bool roundrobin){
         break;
       case 3:
         updateResistance();                  // about 1ms
-        updateUltrasonic();                  // requires about 5ms when not connected
         break;
       case 4:
         updateIMU();                         // heavy task, 13ms
@@ -213,6 +231,9 @@ void ScienceKitCarrier::update(const bool roundrobin){
 
 
 
+
+
+
 /********************************************************************/
 /*                          Analog Inputs                           */
 /********************************************************************/
@@ -225,15 +246,20 @@ int ScienceKitCarrier::beginAnalogInput(){
 
 void ScienceKitCarrier::updateAnalogInput(const uint8_t input_to_update){
   if ((input_to_update==UPDATE_INPUT_A)||(input_to_update==UPDATE_ALL)){
+    
     if (!getExternalTemperatureIsConnected()){
-      inputA=analogRead(inputA_pin);
+      inputA=analogRead(inputA_pin)>>board_resolution;
+      #ifdef ARDUINO_NANO_ESP32
+        beginExternalTemperature();
+      #endif
     }
     else{
       inputA=ANALOGIN_DISABLED;
     } 
+    
   }
   if ((input_to_update==UPDATE_INPUT_B)||(input_to_update==UPDATE_ALL)){
-    inputB=analogRead(inputB_pin);
+    inputB=analogRead(inputB_pin)>>board_resolution;
   }
 }
 
@@ -250,21 +276,59 @@ int ScienceKitCarrier::getInputB(){
 
 
 /********************************************************************/
-/*                             APDS9960                             */
+/*                            APDS99xx                              */
 /********************************************************************/
+
 int ScienceKitCarrier::beginAPDS(){
-  if (!apds9960->begin()) {
-    return ERR_BEGIN_APDS;
+  if (!apds9999->begin()){
+    if (!apds9960->begin()) {
+      return ERR_BEGIN_APDS;
+    }
+    else{
+      color_sensor_used = APDS9960_VERSION;
+    }
   }
+  else{
+    apds9999->enableColorSensor();
+    apds9999->enableProximitySensor();
+    apds9999->setGain(APDS9999_GAIN_18X);
+    apds9999->setLSResolution(APDS9999_LS_RES_16B);
+    apds9999->setLSRate(APDS9999_LS_RATE_25MS);
+    color_sensor_used = APDS9999_VERSION;
+  }
+  #ifdef ARDUINO_NANO_ESP32
+    for(int i=0; i<=color_sensor_used; i++){
+      digitalWrite(LED_GREEN, LOW);
+      delay(100);
+      digitalWrite(LED_GREEN, HIGH);
+      delay(100);
+    }
+    digitalWrite(LED_GREEN, HIGH);
+  #endif
   return 0;
 }
+
 void ScienceKitCarrier::updateAPDS(){
-  if (apds9960->proximityAvailable()){
-    proximity=apds9960->readProximity();
+  wire_lock;
+  if (color_sensor_used==APDS9960_VERSION){
+    if (apds9960->proximityAvailable()){
+      proximity=apds9960->readProximity();
+    }
+    if (apds9960->colorAvailable()){
+      apds9960->readColor(r,g,b,c);
+    }
   }
-  if (apds9960->colorAvailable()){
-    apds9960->readColor(r,g,b,c);
+  if (color_sensor_used==APDS9999_VERSION){
+    r = apds9999->getRed()*5.0*4097/65535.0;
+    g = apds9999->getGreen()*5.0*4097/262144.0;
+    b = apds9999->getBlue()*5.0*4097/131072.0;
+    c = apds9999->getIR()*5.0*4097/4096.0;
+    proximity = 255 - apds9999->getProximity();
+    if (proximity>255){
+      proximity = 0;
+    }
   }
+  wire_unlock;
 }
 
 int ScienceKitCarrier::getProximity(){
@@ -309,9 +373,11 @@ int ScienceKitCarrier::beginINA(){
 }
 
 void ScienceKitCarrier::updateINA(){
+  wire_lock;
   voltage = ina->getBusMilliVolts(0);
-  voltage = voltage/1000.0;
   current = ina->getBusMicroAmps(0);
+  wire_unlock;
+  voltage = voltage/1000.0;
   current = current/1000000.0;
 }
 
@@ -335,10 +401,10 @@ int ScienceKitCarrier::beginResistance(){
   pinMode(resistance_pin,INPUT);
   // search for minimum open circuit resistance
   for (int i=0; i<20; i++){
-    resistance=REF_VOLTAGE*analogRead(resistance_pin)/1024.0;
-    resistance=(RESISTOR_AUX*REF_VOLTAGE/resistance)-RESISTOR_AUX;
+    resistance = getResistanceMeasureVolts();
+    resistance = (RESISTOR_AUX*REF_VOLTAGE/resistance)-RESISTOR_AUX;
     if (opencircuit_resistance>resistance){
-      opencircuit_resistance=resistance;
+      opencircuit_resistance = resistance;
     }
     delay(5);
   }
@@ -348,21 +414,32 @@ int ScienceKitCarrier::beginResistance(){
 }
 
 void ScienceKitCarrier::updateResistance(){
-  resistance=REF_VOLTAGE*analogRead(resistance_pin)/1024.0;
-  if (resistance<=0){
-    resistance=-2.0;
+  resistance = getResistanceMeasureVolts();
+  if (resistance <= 0){
+    resistance = -2.0;
   }
   else{
-    resistance=(RESISTOR_AUX*REF_VOLTAGE/resistance)-RESISTOR_AUX;
-    if (resistance<=RESISTANCE_CALIBRATION_LOW){
-      resistance=0.0;
+    resistance = (RESISTOR_AUX*REF_VOLTAGE/resistance)-RESISTOR_AUX;
+    if (resistance <= RESISTANCE_CALIBRATION_LOW){
+      resistance = 0.0;
     }
     else{
       if (resistance>=opencircuit_resistance){
-        resistance=-1.0;
+        resistance = -1.0;
       }
     }
   }
+}
+
+float ScienceKitCarrier::getResistanceMeasureVolts(){
+  float value = 0.0;
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    value = REF_VOLTAGE*analogRead(resistance_pin)/ADC_RESOLUTION;
+  #endif
+  #ifdef ARDUINO_NANO_ESP32
+    value = analogReadMilliVolts(resistance_pin)/1000.0;
+  #endif
+  return value;
 }
 
 float ScienceKitCarrier::getResistance(){
@@ -381,39 +458,40 @@ int ScienceKitCarrier::beginBME688(){
   SPI.begin();
   bme688->begin(bme688_cs,SPI);
 
-  if (bme688->bsecStatus != 0){
+  if (bme688->status != 0){
     return ERR_BEGIN_BME;
   }
-  if (bme688->bme68xStatus != 0){
+  if (bme688->sensor.status != 0){
     return ERR_BEGIN_BME;
   }
 
-  bsec_virtual_sensor_t sensorList[13] = {
-    BSEC_OUTPUT_IAQ,
-    BSEC_OUTPUT_STATIC_IAQ,
-    BSEC_OUTPUT_CO2_EQUIVALENT,
-    BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
-    BSEC_OUTPUT_RAW_TEMPERATURE,
-    BSEC_OUTPUT_RAW_PRESSURE,
-    BSEC_OUTPUT_RAW_HUMIDITY,
-    BSEC_OUTPUT_RAW_GAS,
-    BSEC_OUTPUT_STABILIZATION_STATUS,
-    BSEC_OUTPUT_RUN_IN_STATUS,
-    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
-    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
-    BSEC_OUTPUT_GAS_PERCENTAGE
-  };
+  bsecSensor sensorList[14] = {
+            BSEC_OUTPUT_IAQ,
+            BSEC_OUTPUT_RAW_TEMPERATURE,
+            BSEC_OUTPUT_RAW_PRESSURE,
+            BSEC_OUTPUT_RAW_HUMIDITY,
+            BSEC_OUTPUT_RAW_GAS,
+            BSEC_OUTPUT_STABILIZATION_STATUS,
+            BSEC_OUTPUT_RUN_IN_STATUS,
+            BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
+            BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
+            BSEC_OUTPUT_STATIC_IAQ,
+            BSEC_OUTPUT_CO2_EQUIVALENT,
+            BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
+            BSEC_OUTPUT_GAS_PERCENTAGE,
+            BSEC_OUTPUT_COMPENSATED_GAS
+    };
 
-  bme688->updateSubscription(sensorList, 13, BSEC_SAMPLE_RATE_CONT);
+  bme688->updateSubscription(sensorList, 14, BSEC_SAMPLE_RATE_CONT);
   return 0;
 }
 
 void ScienceKitCarrier::updateBME688(){
   if (bme688->run()){
-    temperature=bme688->temperature;
-    pressure=(bme688->pressure)/100.0;
-    humidity=bme688->humidity;
-    airquality=bme688->iaq;
+    temperature=bme688->getData(BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE).signal;
+    pressure=bme688->getData(BSEC_OUTPUT_RAW_PRESSURE).signal;
+    humidity=bme688->getData(BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY).signal;
+    airquality=bme688->getData(BSEC_OUTPUT_IAQ).signal;
   }
 }
 
@@ -437,9 +515,15 @@ void ScienceKitCarrier::threadBME688(){
   beginBME688();
   while(1){
     updateBME688();
-    rtos::ThisThread::sleep_for(1000);
+    delay(1000);
   }
 }
+
+#ifdef ARDUINO_NANO_ESP32
+void ScienceKitCarrier::freeRTOSInternalTemperature(void * pvParameters){
+  ((ScienceKitCarrier*) pvParameters)->threadBME688();
+}
+#endif
 
 
 
@@ -455,7 +539,9 @@ int ScienceKitCarrier::beginIMU(){
   }
   return 0;
 }
+
 void ScienceKitCarrier::updateIMU(){
+  wire_lock;
   if (imu->accelerationAvailable()){
     imu->readAcceleration(acceleration[0], acceleration[1], acceleration[2]);
     // change scale g -> m/s^2 and rotate the TF according the board symbol
@@ -477,6 +563,7 @@ void ScienceKitCarrier::updateIMU(){
     magnetic_field[1] = magnetic_field[1];
     magnetic_field[2] = magnetic_field[2];
   }
+  wire_unlock;
 }
 
 void ScienceKitCarrier::getAcceleration(float & x, float & y , float & z){
@@ -533,18 +620,12 @@ float ScienceKitCarrier::getMagneticFieldZ(){
   return magnetic_field[2];
 }
 
-/********************************************************************/
-/*                             delay                                */
-/********************************************************************/
 
-void ScienceKitCarrier::delay(unsigned long t){
-  rtos::ThisThread::sleep_for(t);
-}
 
 
 
 /********************************************************************/
-/*                   LEDs: errors and activity                      */
+/*                   LEDs: errors and status                      */
 /********************************************************************/
 
 void ScienceKitCarrier::errorTrap(const int error_code){
@@ -569,55 +650,66 @@ void ScienceKitCarrier::errorTrap(const int error_code){
   }
 }
 
-void ScienceKitCarrier::threadActivityLed(){
-  while(1){
-    switch (activity_led_state){
-      case ACTIVITY_LED_OFF:
-        digitalWrite(LEDB,LOW);
-        digitalWrite(LEDG,LOW);
-        break;
-      case ACTIVITY_LED_BLE:               // blue breathing effect
-        digitalWrite(LEDG, LOW);
-        for(int i=255; i>0; i--){
-          analogWrite(LEDB, i);
-          rtos::ThisThread::sleep_for(10);
-        }
-        for(int i=0; i<255; i++){
-          analogWrite(LEDB, i);
-          rtos::ThisThread::sleep_for(10);
-        }
-        rtos::ThisThread::sleep_for(100);
-        break;
-      case ACTIVITY_LED_PAIRING:            // blue-green flashing
-        for(int i = 255; i>0; i=i-2){
-          analogWrite(LEDG,i);
-          rtos::ThisThread::sleep_for(1);
-        }
-        for(int i = 0; i<255; i=i+2){
-          analogWrite(LEDG,i);
-          rtos::ThisThread::sleep_for(1);
-        }
-        for(int i = 255; i>0; i=i-2){
-          analogWrite(LEDB,i);
-          rtos::ThisThread::sleep_for(1);
-        }
-        for(int i = 0; i<255; i=i+2){
-          analogWrite(LEDB,i);
-          rtos::ThisThread::sleep_for(1);
-        }
-        digitalWrite(LEDG, LOW);
-        digitalWrite(LEDB, LOW);
-        break;
-      default:                              // any other value turns off leds
-        digitalWrite(LEDB,LOW);
-        digitalWrite(LEDG,LOW);
-    }  
+#ifdef ARDUINO_NANO_ESP32
+void ScienceKitCarrier::setStatusLed(const int led_state){
+  switch (led_state){
+    case STATUS_LED_OFF:
+      enable_led_red = false;
+      enable_led_green = false;
+      enable_led_blue = false;
+      break;
+    case STATUS_LED_BLE:
+      enable_led_blue = true;
+      led_time_base = 20;
+      break;
+    case STATUS_LED_PAIRING:
+      enable_led_blue = true;
+      led_time_base = 5;
+      break;
+    case STATUS_LED_ADD_EXT_TEMP:
+      enable_led_red = true;
+      break;
+    case STATUS_LED_ADD_ULTRASONIC:
+      enable_led_green = true;
+      break;
+    case STATUS_LED_RM_EXT_TEMP:
+      enable_led_red = false;
+      break;
+    case STATUS_LED_RM_ULTRASONIC:
+      enable_led_green = false;
+      break;
+    default:
+      enable_led_red = false;
+      enable_led_green = false;
+      enable_led_blue = false;
   }
 }
 
-void ScienceKitCarrier::setActivityLed(const int led_state){
-  activity_led_state=led_state;
+void ScienceKitCarrier::threadStatusLed(){
+  unsigned long animation_time = millis();
+  int brightness = 0;
+  int fadeAmount = 5;
+  while(1){
+    while(millis()-animation_time>led_time_base){
+      animation_time = millis();
+      analogWrite(LED_RED, 255-(0.125*brightness)*enable_led_red);
+      analogWrite(LED_GREEN, 255-brightness*enable_led_green);
+      analogWrite(LED_BLUE, 255-brightness*enable_led_blue);
+      brightness = brightness + fadeAmount;
+      if (brightness <= 0 || brightness >= 255) {
+        fadeAmount = -fadeAmount;
+      }
+    }
+    delay(5);
+  }
 }
+
+void ScienceKitCarrier::freeRTOSStatusLed(void * pvParameters){
+  ((ScienceKitCarrier*) pvParameters)->threadStatusLed();
+}
+#endif
+  
+
 
 
 
@@ -631,7 +723,9 @@ int ScienceKitCarrier::beginFrequencyGeneratorData(){
 }
 
 void ScienceKitCarrier::updateFrequencyGeneratorData(){
+  wire_lock;
   function_generator_controller->updateData();
+  wire_unlock;
   function_generator_controller->getData(frequency1, range1, phase1, frequency2, range2, phase2);
 }
 
@@ -661,28 +755,65 @@ uint8_t ScienceKitCarrier::getRange2(){
 
 
 
+
+
 /********************************************************************/
 /*                        Ultrasonic Sensor                         */
 /********************************************************************/
 
-int ScienceKitCarrier::beginUltrasonic(){
-  ultrasonic->begin();
-  updateUltrasonic();
-}
-
 void ScienceKitCarrier::updateUltrasonic(){
-  if (ultrasonic->checkConnection()){
-    ultrasonic_is_connected=true;
-    distance=ultrasonic->getMeters();
-    travel_time=ultrasonic->getTravelTime();
+  requestUltrasonicUpdate();
+  delay(120);
+  retriveUltrasonicUpdate();
+  if (ultrasonic_data==4294967295){
+    ultrasonic_measure = -1.0;
+    ultrasonic_is_connected = false;
+    #ifdef ARDUINO_NANO_ESP32
+      setStatusLed(STATUS_LED_RM_ULTRASONIC);
+    #endif
   }
   else{
-    ultrasonic_is_connected=false;
+    ultrasonic_measure = float(ultrasonic_data) / 1000.0;
+    if (ultrasonic_measure>4500.0){
+      ultrasonic_measure = 4500.0;
+    }
+    ultrasonic_is_connected = true;
+    #ifdef ARDUINO_NANO_ESP32
+      setStatusLed(STATUS_LED_ADD_ULTRASONIC);
+    #endif
   }
+
+  if (ultrasonic_is_connected){
+    distance = ultrasonic_measure;
+    travel_time = ultrasonic_measure*2.0/0.343;
+  }
+  else{
+    distance = -1.0;
+    travel_time = -1.0;
+  }
+}
+
+void ScienceKitCarrier::requestUltrasonicUpdate(){
+  wire_lock;
+  Wire.beginTransmission((uint8_t)ULTRASONIC_ADDRESS);
+  Wire.write(0x01);
+  Wire.endTransmission();
+  wire_unlock;
+}
+
+void ScienceKitCarrier::retriveUltrasonicUpdate(){
+  wire_lock;
+  Wire.requestFrom((uint8_t)ULTRASONIC_ADDRESS,(uint8_t)3);
+  ultrasonic_data = Wire.read();
+  ultrasonic_data <<= 8;
+  ultrasonic_data |= Wire.read();
+  ultrasonic_data <<= 8;
+  ultrasonic_data |= Wire.read();
+  wire_unlock;
 }
 
 float ScienceKitCarrier::getDistance(){
-  return distance;
+  return distance/1000.0;
 }
 
 float ScienceKitCarrier::getTravelTime(){
@@ -692,6 +823,21 @@ float ScienceKitCarrier::getTravelTime(){
 bool ScienceKitCarrier::getUltrasonicIsConnected(){
   return ultrasonic_is_connected;
 }
+
+void ScienceKitCarrier::threadUltrasonic(){
+  while(1){
+    updateUltrasonic();
+    delay(200);
+  }
+}
+
+#ifdef ARDUINO_NANO_ESP32
+void ScienceKitCarrier::freeRTOSUltrasonic(void * pvParameters){
+  ((ScienceKitCarrier*) pvParameters)->threadUltrasonic();
+}
+#endif
+
+
 
 
 
@@ -707,8 +853,14 @@ int ScienceKitCarrier::beginExternalTemperature(){
 
 void ScienceKitCarrier::updateExternalTemperature(){
   float temperature;
-  pinMode(OW_PIN,INPUT);
   
+  #ifdef ARDUINO_NANO_RP2040_CONNECT
+    pinMode(OW_PIN,INPUT);
+  #endif
+  #ifdef ARDUINO_NANO_ESP32
+    pinMode(INPUTA_PIN,INPUT);
+  #endif
+
   DSTherm drv(ow);
   drv.convertTempAll(DSTherm::MAX_CONV_TIME, false);  
 
@@ -718,10 +870,16 @@ void ScienceKitCarrier::updateExternalTemperature(){
   if (ec == OneWireNg::EC_SUCCESS) {
     if (scrpd->getAddr()!=15){
       external_temperature_is_connected=false;
+      #ifdef ARDUINO_NANO_ESP32
+        setStatusLed(STATUS_LED_RM_EXT_TEMP);
+      #endif
       external_temperature = EXTERNAL_TEMPERATURE_DISABLED;
     }
     else{
       external_temperature_is_connected=true;
+      #ifdef ARDUINO_NANO_ESP32
+        setStatusLed(STATUS_LED_ADD_EXT_TEMP);
+      #endif
       long temp = scrpd->getTemp();
       int sign=1;
       if (temp < 0) {
@@ -747,9 +905,18 @@ void ScienceKitCarrier::threadExternalTemperature(){
   while(1){
     updateExternalTemperature();
     updateAnalogInput(UPDATE_INPUT_A);
-    rtos::ThisThread::sleep_for(1000);
+
+    delay(1000);
   }
 }
+
+#ifdef ARDUINO_NANO_ESP32
+void ScienceKitCarrier::freeRTOSExternalTemperature(void * pvParameters){
+  ((ScienceKitCarrier*) pvParameters)->threadExternalTemperature();
+}
+#endif
+
+
 
 
 
@@ -757,6 +924,7 @@ void ScienceKitCarrier::threadExternalTemperature(){
 /*                             Microphone                           */
 /********************************************************************/
 
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 int ScienceKitCarrier::beginMicrophone(){
   PDM.setGain(50);
   PDM.onReceive(updateMicrophoneDataBuffer);
@@ -788,6 +956,8 @@ void ScienceKitCarrier::updateMicrophoneDataBuffer(){
 uint ScienceKitCarrier::getMicrophoneRMS(){
   return microphone_rms;
 }
+#endif
+
 
 
 
@@ -797,24 +967,56 @@ uint ScienceKitCarrier::getMicrophoneRMS(){
 /********************************************************************/
 
 void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
-  //thread_activity_led->start(mbed::callback(this, &ScienceKitCarrier::threadActivityLed));    //left for legacy on prototypes and maybe future implementations
-
   // start bme688 thread
   if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_INTERNAL_AMBIENT_SENSOR)){
     if (!thread_bme_is_running){
-      thread_update_bme->start(mbed::callback(this, &ScienceKitCarrier::threadBME688)); 
+      #ifdef ARDUINO_NANO_RP2040_CONNECT
+        thread_update_bme->start(mbed::callback(this, &ScienceKitCarrier::threadBME688)); 
+      #endif
+      #ifdef ARDUINO_NANO_ESP32
+        xTaskCreatePinnedToCore(this->freeRTOSInternalTemperature, "update_internal_temperature", 10000, this, 1, &thread_internal_temperature, INTERNAL_TEMPERATURE_CORE);
+      #endif
     }
-    thread_bme_is_running=true;
+    thread_bme_is_running = true;
   }
 
   // start ds18b20 thread
   if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_EXTERNAL_AMBIENT_SENSOR)){
     if (!thread_ext_temperature_is_running){
-      thread_external_temperature->start(mbed::callback(this, &ScienceKitCarrier::threadExternalTemperature));
+      #ifdef ARDUINO_NANO_RP2040_CONNECT
+        thread_external_temperature->start(mbed::callback(this, &ScienceKitCarrier::threadExternalTemperature));
+      #endif
+      #ifdef ARDUINO_NANO_ESP32
+        xTaskCreatePinnedToCore(this->freeRTOSExternalTemperature, "update_external_temperature", 10000, this, 1, &thread_external_temperature, EXTERNAL_TEMPERATURE_CORE);
+      #endif
     }
-    thread_ext_temperature_is_running=true;
+    thread_ext_temperature_is_running = true;
   }
+
+  // start ultrasonic thread
+  if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_ULTRASONIC)){
+    if (!thread_ultrasonic_is_running){
+      #ifdef ARDUINO_NANO_RP2040_CONNECT
+        thread_ultrasonic->start(mbed::callback(this, &ScienceKitCarrier::threadUltrasonic));
+      #endif
+      #ifdef ARDUINO_NANO_ESP32
+        xTaskCreatePinnedToCore(this->freeRTOSUltrasonic, "update_ultrasonic", 10000, this, 1, &thread_ultrasonic, ULTRASONIC_CORE);
+      #endif
+    }
+    thread_ultrasonic_is_running = true;
+  }
+
+  // start status led
+  #ifdef ARDUINO_NANO_ESP32
+  if ((auxiliary_threads==START_AUXILIARY_THREADS)||(auxiliary_threads==START_STATUS_LED)){
+    if (!thread_led_is_running){
+      xTaskCreatePinnedToCore(this->freeRTOSStatusLed, "update_led", 10000, this, 1, &thread_led, LED_CORE);
+    }
+    thread_led_is_running = true;
+  } 
+  #endif
 }
+
 
 
 

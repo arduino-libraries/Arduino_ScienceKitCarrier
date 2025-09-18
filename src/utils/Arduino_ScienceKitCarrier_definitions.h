@@ -28,8 +28,17 @@
 #define UPDATE_INPUT_A 1
 #define UPDATE_INPUT_B 2
 
+#ifdef ARDUINO_NANO_RP2040_CONNECT
+#define BOARD_RESOLUTION 0
+#endif
+#ifdef ARDUINO_NANO_ESP32
+#define BOARD_RESOLUTION 2
+#endif
+
 // APDS9960
 #define INT_APDS9960 9
+#define APDS9960_VERSION 0
+#define APDS9999_VERSION 1
 
 // INA
 const uint32_t SHUNT_MICRO_OHM{100000};    // check schematic R20
@@ -38,9 +47,20 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 // Resistance
 #define RESISTANCE_PIN A2
 #define RESISTOR_AUX  1000.0
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #define REF_VOLTAGE 3.3
+#endif 
+#ifdef ARDUINO_NANO_ESP32
+#define REF_VOLTAGE 3.15
+#endif 
 #define RESISTANCE_CALIBRATION_HIGH 200000
 #define RESISTANCE_CALIBRATION_LOW 10
+#ifdef ARDUINO_NANO_RP2040_CONNECT
+#define ADC_RESOLUTION 1023.0
+#endif
+#ifdef ARDUINO_NANO_ESP32
+#define ADC_RESOLUTION 4095.0
+#endif
 
 // Imu
 #define G_EARTH 9.807
@@ -49,14 +69,23 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define BME688_CS 10
 
 // External temperature connected on input A
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #define OW_PIN digitalPinToPinName(INPUTA_PIN)
+#endif
+#ifdef ARDUINO_NANO_ESP32
+#define OW_PIN digitalPinToGPIONumber(INPUTA_PIN)
+#endif
 #define EXTERNAL_TEMPERATURE_DISABLED -273.15; // absolute zero xD
 
+// Ultrasonic sensor
+#define ULTRASONIC_ADDRESS 0x57
+
 // Microphone - PDM on Arduino Nano RP2040 Connect
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #define MICROPHONE_BUFFER_SIZE 512
 #define MICROPHONE_CHANNELS 1
 #define MICROPHONE_FREQUENCY 16000
-
+#endif
 
 // Errors
 #define ERR_BEGIN_APDS -3
@@ -67,26 +96,40 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define ERR_BEGIN_FUNCTION_GENERATOR_CONTROLLER -8
 #define ERR_BEGIN_ULTRASONIC -9
 #define ERR_BEGIN_EXTERNAL_TEMPERATURE -10
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #define ERR_BEGIN_MICROPHONE -11
-
+#endif
 
 
 
 // Led
-#define ACTIVITY_LED_OFF 0
-#define ACTIVITY_LED_BLE 1
-#define ACTIVITY_LED_PAIRING 2
+#define STATUS_LED_OFF 0
+#define STATUS_LED_BLE 1
+#define STATUS_LED_PAIRING 2
+#define STATUS_LED_ADD_EXT_TEMP 3
+#define STATUS_LED_ADD_ULTRASONIC 4
+#define STATUS_LED_RM_EXT_TEMP 5
+#define STATUS_LED_RM_ULTRASONIC 6
+
 
 // Update
 #define ROUND_ROBIN_ENABLED 1
 #define ROUND_ROBIN_DISABLED 0
 
 #define NO_AUXILIARY_THREADS 0
-#define START_AUXILIARY_THREADS 1
+#define START_AUXILIARY_THREADS 1           // bme688 + ds18b20 + ultrasonic
 #define START_INTERNAL_AMBIENT_SENSOR 2     // bme688
 #define START_EXTERNAL_AMBIENT_SENSOR 3     // ds18b20
+#define START_ULTRASONIC 4                  // grove I2C ultrasonic sensor
+#define START_STATUS_LED 5
 
 
+#ifdef ARDUINO_NANO_ESP32 // 1 user, 0 secondary core
+#define EXTERNAL_TEMPERATURE_CORE 1
+#define INTERNAL_TEMPERATURE_CORE 0
+#define ULTRASONIC_CORE 1
+#define LED_CORE 1
+#endif
 
 
 

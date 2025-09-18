@@ -32,9 +32,11 @@ jobs:
         - name: WiFiNINA
         - name: INA2xx
         - name: Arduino_BMI270_BMM150
-        - name: BSEC Software Library
+        - name: bsec2
         - name: Arduino_GroveI2C_Ultrasonic
         - name: OneWireNg
+        - name: Arduino_APDS9999
+
 
     strategy:
       fail-fast: false
@@ -45,6 +47,10 @@ jobs:
             platforms: |
               - name: arduino:mbed_nano
             artifact-name-suffix: arduino-mbed_nano-nanorp2040connect
+          - fqbn: arduino:esp32:nano_nora
+            platforms: |
+              - name: arduino:esp32
+            artifact-name-suffix: arduino-nano-esp32
 
     steps:
       - name: Checkout repository

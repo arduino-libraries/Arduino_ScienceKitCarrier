@@ -38,8 +38,12 @@ const int VERSION = 0x00000002;
 #define BLE_CH_TEMPERA               "1009"
 #define BLE_CH_PRESSUR               "1010"
 #define BLE_CH_HUMIDIT               "1011"
+
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #define BLE_CH_SOUNDIN               "1012"
 #define BLE_CH_SOUNDPI               "1013"
+#endif
+
 #define BLE_CH_FUNGEN1               "1014"
 #define BLE_CH_DISTANC               "1015"
 #define BLE_CH_INPUT_A               "1016"
@@ -49,8 +53,13 @@ const int VERSION = 0x00000002;
 #define BLE_CH____PING               "1020"
 #define BLE_CH_FUNGEN2               "1021"
 
-
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 #define SCIENCE_KIT_UUID(val) ("555a0003-" val "-467a-9538-01f0652c74e8")
+#endif
+#ifdef ARDUINO_NANO_ESP32
+#define SCIENCE_KIT_UUID(val) ("555a0004-" val "-467a-9538-01f0652c74e8")
+#endif
+
 
 /* 
  * SERVICE, VERSION 
@@ -103,11 +112,12 @@ BLEFloatCharacteristic         airQualityCharacteristic   (SCIENCE_KIT_UUID(BLE_
 /*
  * MICROPHONE
  */
-
+#ifdef ARDUINO_NANO_RP2040_CONNECT
 /* ___________________________________________________________SOUND_INTENSITY */
 BLEUnsignedIntCharacteristic   sndIntensityCharacteristic (SCIENCE_KIT_UUID(BLE_CH_SOUNDIN), BLENotify); // *** !
 /* ______!!! NOT AVAILABLE (should be delete?) !!!________________SOUND_PITCH */
 BLEUnsignedIntCharacteristic   sndPitchCharacteristic     (SCIENCE_KIT_UUID(BLE_CH_SOUNDPI), BLENotify);
+#endif
 
 /*
  * INPUT A,B
