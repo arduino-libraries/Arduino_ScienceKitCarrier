@@ -69,6 +69,7 @@ static  Placeholder<OneWireNg_CurrentPlatform> ow;
 #define wire_unlock xSemaphoreGive(wire_semaphore)
 #endif
 
+#include <Arduino_Modulino.h>
 
 class ScienceKitCarrier{
   private:
@@ -142,6 +143,12 @@ class ScienceKitCarrier{
 
     void requestUltrasonicUpdate();
     void retriveUltrasonicUpdate();
+
+    // WIP
+    
+    ModulinoDistance * tof;
+    bool tof_connected;
+    
 
   public:
     ScienceKitCarrier();
@@ -254,7 +261,8 @@ class ScienceKitCarrier{
     static void freeRTOSUltrasonic(void * pvParameters);
     #endif
 
-
+    //WIP
+    void updateTOF();
 
     /* External temperature probe - Dallas DS18B20 */
     int beginExternalTemperature();

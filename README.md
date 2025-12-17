@@ -9,3 +9,8 @@ Library to use the Science Kit Carrier rev3 sensors and make possible the connec
 
 ## NOTE
 This library requires at least firmware 1.5.0 on your NINA module.
+
+# WARNING - WIP
+
+this branch works only with Modulino Distance and ESP32.
+When building this branch, please choose "pin numbering: by GPIO number (legacy)" from the tool tab in Arduino IDE.

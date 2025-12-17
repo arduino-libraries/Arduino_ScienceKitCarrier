@@ -21,8 +21,8 @@
 #define __ARDUINO_SCIENCEKITCARRIER_DEFINITIONS_H__
 
 // Grove pads
-#define INPUTA_PIN A0
-#define INPUTB_PIN A1
+#define INPUTA_PIN 1
+#define INPUTB_PIN 2
 #define ANALOGIN_DISABLED 0
 #define UPDATE_ALL 0
 #define UPDATE_INPUT_A 1
@@ -36,7 +36,7 @@
 #endif
 
 // APDS9960
-#define INT_APDS9960 9
+#define INT_APDS9960 18
 #define APDS9960_VERSION 0
 #define APDS9999_VERSION 1
 
@@ -45,7 +45,7 @@ const uint32_t SHUNT_MICRO_OHM{100000};    // check schematic R20
 const uint16_t MAXIMUM_AMPS{1};            // 1A
 
 // Resistance
-#define RESISTANCE_PIN A2
+#define RESISTANCE_PIN 3
 #define RESISTOR_AUX  1000.0
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 #define REF_VOLTAGE 3.3
@@ -66,14 +66,14 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 #define G_EARTH 9.807
 
 // Bme688
-#define BME688_CS 10
+#define BME688_CS 21
 
 // External temperature connected on input A
 #ifdef ARDUINO_NANO_RP2040_CONNECT
 #define OW_PIN digitalPinToPinName(INPUTA_PIN)
 #endif
 #ifdef ARDUINO_NANO_ESP32
-#define OW_PIN digitalPinToGPIONumber(INPUTA_PIN)
+#define OW_PIN INPUTA_PIN
 #endif
 #define EXTERNAL_TEMPERATURE_DISABLED -273.15; // absolute zero xD
 
@@ -134,8 +134,8 @@ const uint16_t MAXIMUM_AMPS{1};            // 1A
 
 
 // Servos
-#define SERVO_A_PIN 3
-#define SERVO_B_PIN 2
+#define SERVO_A_PIN 6
+#define SERVO_B_PIN 5
 
 
 

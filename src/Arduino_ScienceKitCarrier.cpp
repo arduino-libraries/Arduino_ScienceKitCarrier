@@ -112,6 +112,10 @@ ScienceKitCarrier::ScienceKitCarrier(){
   enable_led_green = false;
   enable_led_blue = false;
   led_time_base = 20;
+
+  //Modulino.begin(Wire);
+  tof = new ModulinoDistance();
+  
 }
 
 
@@ -133,7 +137,7 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
     digitalWrite(LED_BLUE,HIGH);
   #endif
 
-
+  Modulino.begin();
   Wire.begin();
 
   // most of begin functions return always 0, it is a code-style or future implementation
@@ -169,6 +173,15 @@ int ScienceKitCarrier::begin(const uint8_t auxiliary_threads){
     return ERR_BEGIN_MICROPHONE;
   }
   #endif
+
+
+  if (!tof->begin()){
+    tof_connected = false;
+  }
+  else{
+    tof_connected = true;
+    ultrasonic_is_connected = true;
+  }
 
   // let's start bme688, external ds18b20 probe and ultrasonic sensor
   startAuxiliaryThreads(auxiliary_threads);
@@ -791,6 +804,7 @@ void ScienceKitCarrier::updateUltrasonic(){
     distance = -1.0;
     travel_time = -1.0;
   }
+
 }
 
 void ScienceKitCarrier::requestUltrasonicUpdate(){
@@ -826,8 +840,10 @@ bool ScienceKitCarrier::getUltrasonicIsConnected(){
 
 void ScienceKitCarrier::threadUltrasonic(){
   while(1){
-    updateUltrasonic();
-    delay(200);
+    //updateUltrasonic();
+    updateTOF();
+    //delay(200);
+    delay(100);
   }
 }
 
@@ -1017,7 +1033,19 @@ void ScienceKitCarrier::startAuxiliaryThreads(const uint8_t auxiliary_threads){
   #endif
 }
 
-
+// WIP
+void ScienceKitCarrier::updateTOF(){
+  if (tof_connected){
+    if (tof->available()){
+      distance = tof->get();
+      travel_time = distance*2.0/0.343;
+    }
+  }
+  else{
+    distance = -1.0;
+    travel_time = -1.0;
+  }
+}
 
 
 
