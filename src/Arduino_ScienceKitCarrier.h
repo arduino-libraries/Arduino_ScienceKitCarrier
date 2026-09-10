@@ -43,7 +43,8 @@
 #include "Arduino_BMI270_BMM150.h"
 
 #ifdef ARDUINO_NANO_RP2040_CONNECT
-#include "../../OneWireNg/src/platform/OneWireNg_PicoRP2040.h"  // forces to use gpio instead PIO hw
+#include <OneWireNg.h>
+#include <platform/OneWireNg_PicoRP2040.h>  // forces to use gpio instead PIO hw
 #define OneWireNg_CurrentPlatform OneWireNg_PicoRP2040
 #endif
 #ifdef ARDUINO_NANO_ESP32
